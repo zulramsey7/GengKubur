@@ -20,7 +20,7 @@ export default defineConfig(({ mode }) => ({
       registerType: 'autoUpdate',
       includeAssets: ['favicon.ico', 'logo.svg'],
       manifest: {
-        name: 'GengKubur Planner',
+        name: 'GengKubur Ukay Perdana',
         short_name: 'GengKubur',
         description: 'Perkhidmatan Penyelenggaraan Kubur Profesional & Amanah',
         theme_color: '#2A6F46',

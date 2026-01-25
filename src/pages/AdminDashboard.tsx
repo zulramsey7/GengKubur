@@ -257,21 +257,130 @@ Sebarang pertanyaan hubungi: 60173304906`;
   }
 
   return (
-    <div className="container py-10">
-      <div className="mb-8 flex items-center justify-between">
-        <h1 className="text-3xl font-bold">Admin Dashboard</h1>
-        <div className="flex gap-4">
-          <Button onClick={fetchBookings} variant="outline">
+    <div className="container py-6 md:py-10 max-w-7xl mx-auto">
+      <div className="mb-8 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-2xl md:text-3xl font-bold">Admin Dashboard</h1>
+          <p className="text-sm text-muted-foreground mt-1">
+            Uruskan tempahan dan pelanggan anda
+          </p>
+        </div>
+        <div className="flex w-full md:w-auto gap-2">
+          <Button onClick={fetchBookings} variant="outline" className="flex-1 md:flex-none">
             Refresh
           </Button>
-          <Button onClick={handleLogout} variant="destructive">
+          <Button onClick={handleLogout} variant="destructive" className="flex-1 md:flex-none">
             <LogOut className="h-4 w-4 mr-2" />
             Log Keluar
           </Button>
         </div>
       </div>
 
-      <div className="rounded-md border">
+      {/* Mobile View (Cards) */}
+      <div className="grid gap-4 md:hidden">
+        {bookings.length === 0 ? (
+          <Card>
+            <CardContent className="py-8 text-center text-muted-foreground">
+              Tiada tempahan dijumpai
+            </CardContent>
+          </Card>
+        ) : (
+          bookings.map((booking) => (
+            <Card key={booking.id} className="overflow-hidden">
+              <CardHeader className="pb-2">
+                <div className="flex justify-between items-start">
+                  <div>
+                    <CardTitle className="text-base font-bold flex items-center gap-2">
+                      #{booking.order_id.slice(-6)}
+                      <Badge variant="outline" className="font-normal text-xs">
+                        {new Date(booking.created_at).toLocaleDateString("ms-MY")}
+                      </Badge>
+                    </CardTitle>
+                    <p className="text-sm font-medium mt-1">{booking.customer_name}</p>
+                  </div>
+                  <Badge className={getStatusColor(booking.status)}>
+                    {booking.status}
+                  </Badge>
+                </div>
+              </CardHeader>
+              <CardContent className="pb-4 text-sm space-y-2">
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <span className="text-muted-foreground text-xs">Pakej</span>
+                    <p className="font-medium">{booking.package_name}</p>
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground text-xs">Harga</span>
+                    <p className="font-medium">RM {booking.package_price}</p>
+                  </div>
+                </div>
+                
+                {booking.payment_proof_url && (
+                  <div className="pt-2">
+                    <span className="text-muted-foreground text-xs block mb-1">Bukti Bayaran</span>
+                    <a 
+                      href={booking.payment_proof_url} 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center text-blue-600 hover:underline text-xs bg-blue-50 px-2 py-1 rounded border border-blue-100"
+                    >
+                      <ExternalLink className="h-3 w-3 mr-1" />
+                      Lihat Resit
+                    </a>
+                  </div>
+                )}
+
+                <div className="pt-4 flex items-center justify-between gap-2 border-t mt-2">
+                  <Select 
+                    defaultValue={booking.status} 
+                    onValueChange={(value) => updateStatus(booking.id, value)}
+                  >
+                    <SelectTrigger className="h-9 w-[110px] text-xs">
+                      <SelectValue placeholder="Status" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="pending">Pending</SelectItem>
+                      <SelectItem value="confirmed">Confirmed</SelectItem>
+                      <SelectItem value="completed">Completed</SelectItem>
+                      <SelectItem value="cancelled">Cancelled</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  
+                  <div className="flex gap-2">
+                    <Button variant="outline" size="sm" className="h-9 w-9 p-0" onClick={() => setSelectedBooking(booking)}>
+                      <Eye className="h-4 w-4" />
+                    </Button>
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button variant="outline" size="sm" className="h-9 w-9 p-0 text-red-500 hover:text-red-700 hover:bg-red-50 border-red-200">
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent className="w-[90vw] rounded-lg">
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>Padam Tempahan?</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            Tindakan ini kekal. Tempahan #{booking.order_id} akan dipadam.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter className="flex-row gap-2 justify-end">
+                          <AlertDialogCancel className="mt-0">Batal</AlertDialogCancel>
+                          <AlertDialogAction onClick={() => deleteBooking(booking.id)} className="bg-red-500 hover:bg-red-600">
+                            Padam
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          ))
+        )}
+      </div>
+
+      {/* Desktop View (Table) */}
+      <div className="rounded-md border hidden md:block bg-card">
         <Table>
           <TableHeader>
             <TableRow>
@@ -378,7 +487,7 @@ Sebarang pertanyaan hubungi: 60173304906`;
       </div>
 
       <Dialog open={!!selectedBooking} onOpenChange={(open) => !open && setSelectedBooking(null)}>
-        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto w-[95vw] rounded-xl">
           <DialogHeader>
             <DialogTitle>Butiran Tempahan</DialogTitle>
             <DialogDescription>
@@ -388,59 +497,88 @@ Sebarang pertanyaan hubungi: 60173304906`;
           
           {selectedBooking && (
             <div className="grid gap-6 py-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <h3 className="font-semibold mb-2">Maklumat Pelanggan</h3>
-                  <div className="space-y-1 text-sm">
-                    <p><span className="text-muted-foreground">Nama:</span> {selectedBooking.customer_name}</p>
-                    <p><span className="text-muted-foreground">No. Tel:</span> {selectedBooking.phone_number}</p>
-                    <p><span className="text-muted-foreground">Lokasi:</span> {selectedBooking.location}</p>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-4">
+                  <div>
+                    <h3 className="font-semibold mb-2 flex items-center gap-2">
+                      Maklumat Pelanggan
+                    </h3>
+                    <div className="bg-muted/50 p-3 rounded-lg space-y-2 text-sm">
+                      <div className="grid grid-cols-[80px_1fr]">
+                        <span className="text-muted-foreground">Nama:</span>
+                        <span className="font-medium">{selectedBooking.customer_name}</span>
+                      </div>
+                      <div className="grid grid-cols-[80px_1fr]">
+                        <span className="text-muted-foreground">No. Tel:</span>
+                        <span className="font-medium">{selectedBooking.phone_number}</span>
+                      </div>
+                      <div className="grid grid-cols-[80px_1fr]">
+                        <span className="text-muted-foreground">Lokasi:</span>
+                        <span className="font-medium">{selectedBooking.location}</span>
+                      </div>
+                    </div>
                   </div>
-                </div>
-                <div>
-                  <h3 className="font-semibold mb-2">Maklumat Pakej</h3>
-                  <div className="space-y-1 text-sm">
-                    <p><span className="text-muted-foreground">Pakej:</span> {selectedBooking.package_name}</p>
-                    <p><span className="text-muted-foreground">Harga:</span> RM {selectedBooking.package_price}</p>
-                    <p><span className="text-muted-foreground">Tarikh:</span> {new Date(selectedBooking.created_at).toLocaleDateString("ms-MY")}</p>
-                    <p><span className="text-muted-foreground">Status:</span> <Badge className={getStatusColor(selectedBooking.status)}>{selectedBooking.status}</Badge></p>
-                  </div>
-                </div>
-              </div>
 
-              <div>
-                <h3 className="font-semibold mb-2">Catatan</h3>
-                <p className="text-sm bg-muted p-3 rounded-md">
-                  {selectedBooking.notes || "Tiada catatan"}
-                </p>
-              </div>
-
-              {selectedBooking.payment_proof_url && (
-                <div>
-                  <h3 className="font-semibold mb-2">Bukti Pembayaran</h3>
-                  <div className="border rounded-lg p-2 bg-muted/20 relative group">
-                    <img 
-                      src={selectedBooking.payment_proof_url}
-                      alt="Bukti Pembayaran"
-                      className="w-full h-auto rounded-md cursor-pointer hover:opacity-95 transition-opacity"
-                      onClick={() => window.open(selectedBooking.payment_proof_url!, '_blank')}
-                      onError={(e) => {
-                        const target = e.target as HTMLImageElement;
-                        target.onerror = null;
-                        target.src = "https://placehold.co/600x400?text=Gambar+Tidak+Dijumpai";
-                      }}
-                    />
-                    <div className="absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <Button size="sm" variant="secondary" onClick={() => window.open(selectedBooking.payment_proof_url!, '_blank')}>
-                        Lihat Penuh
-                      </Button>
+                  <div>
+                    <h3 className="font-semibold mb-2">Maklumat Pakej</h3>
+                    <div className="bg-muted/50 p-3 rounded-lg space-y-2 text-sm">
+                      <div className="grid grid-cols-[80px_1fr]">
+                        <span className="text-muted-foreground">Pakej:</span>
+                        <span className="font-medium">{selectedBooking.package_name}</span>
+                      </div>
+                      <div className="grid grid-cols-[80px_1fr]">
+                        <span className="text-muted-foreground">Harga:</span>
+                        <span className="font-medium">RM {selectedBooking.package_price}</span>
+                      </div>
+                      <div className="grid grid-cols-[80px_1fr]">
+                        <span className="text-muted-foreground">Tarikh:</span>
+                        <span className="font-medium">{new Date(selectedBooking.created_at).toLocaleDateString("ms-MY")}</span>
+                      </div>
+                      <div className="grid grid-cols-[80px_1fr] items-center">
+                        <span className="text-muted-foreground">Status:</span>
+                        <Badge className={getStatusColor(selectedBooking.status) + " w-fit"}>{selectedBooking.status}</Badge>
+                      </div>
                     </div>
                   </div>
                 </div>
-              )}
 
-              <div className="mt-6 border-t pt-4">
-                <h3 className="font-semibold mb-2 flex items-center gap-2">
+                <div className="space-y-4">
+                  <div>
+                    <h3 className="font-semibold mb-2">Catatan</h3>
+                    <p className="text-sm bg-muted p-3 rounded-lg min-h-[80px]">
+                      {selectedBooking.notes || "Tiada catatan"}
+                    </p>
+                  </div>
+
+                  {selectedBooking.payment_proof_url && (
+                    <div>
+                      <h3 className="font-semibold mb-2">Bukti Pembayaran</h3>
+                      <div className="border rounded-lg p-2 bg-muted/20 relative group">
+                        <img 
+                          src={selectedBooking.payment_proof_url}
+                          alt="Bukti Pembayaran"
+                          className="w-full h-auto max-h-[200px] object-contain rounded-md cursor-pointer hover:opacity-95 transition-opacity bg-white"
+                          onClick={() => window.open(selectedBooking.payment_proof_url!, '_blank')}
+                          onError={(e) => {
+                            const target = e.target as HTMLImageElement;
+                            target.onerror = null;
+                            target.src = "https://placehold.co/600x400?text=Gambar+Tidak+Dijumpai";
+                          }}
+                        />
+                        <div className="absolute top-2 right-2">
+                          <Button size="sm" variant="secondary" className="h-8 text-xs shadow-sm" onClick={() => window.open(selectedBooking.payment_proof_url!, '_blank')}>
+                            <ExternalLink className="h-3 w-3 mr-1" />
+                            Buka
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div className="mt-2 border-t pt-4">
+                <h3 className="font-semibold mb-3 flex items-center gap-2">
                   <FileText className="h-4 w-4" />
                   Penjanaan Resit
                 </h3>
@@ -448,10 +586,10 @@ Sebarang pertanyaan hubungi: 60173304906`;
                   <Textarea 
                     value={receiptText}
                     onChange={(e) => setReceiptText(e.target.value)}
-                    className="font-mono text-sm min-h-[200px]"
+                    className="font-mono text-sm min-h-[150px]"
                     placeholder="Teks resit akan dipaparkan di sini..."
                   />
-                  <div className="grid grid-cols-2 gap-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <Button onClick={handleSendWhatsApp} className="w-full bg-green-600 hover:bg-green-700 text-white">
                       <Send className="h-4 w-4 mr-2" />
                       Hantar WhatsApp
