@@ -1,6 +1,9 @@
 import { useState, useRef } from "react";
 import { Package, BookingDetails, OrderSummary } from "@/types/booking";
+import Navbar from "@/components/Navbar";
 import HeroSection from "@/components/HeroSection";
+import AboutSection from "@/components/AboutSection";
+import GallerySection from "@/components/GallerySection";
 import PackagesSection from "@/components/PackagesSection";
 import BookingForm from "@/components/BookingForm";
 import CheckoutModal from "@/components/CheckoutModal";
@@ -103,28 +106,40 @@ const Index = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      <HeroSection />
+      <Navbar />
       
-      <PackagesSection
-        selectedPackage={selectedPackage}
-        onSelectPackage={handleSelectPackage}
-      />
-      
-      <div ref={formRef}>
-        <BookingForm
-          selectedPackage={selectedPackage}
-          onSubmit={handleBookingSubmit}
-        />
+      <div id="hero">
+        <HeroSection />
       </div>
 
-      <Footer />
+      <AboutSection />
+      
+      <PackagesSection 
+        selectedPackage={selectedPackage} 
+        onSelectPackage={handleSelectPackage} 
+      />
+
+      <GallerySection />
+
+      <div className="container py-12 md:py-16">
+        <div ref={formRef}>
+          <BookingForm 
+            selectedPackage={selectedPackage}
+            onSubmit={handleBookingSubmit}
+          />
+        </div>
+      </div>
+
+      <div id="contact">
+        <Footer />
+      </div>
 
       {showCheckout && currentOrder && (
         <CheckoutModal
-          order={currentOrder}
           onClose={handleCloseCheckout}
-          qrImageUrl={QR_CODE_URL}
+          order={currentOrder}
           whatsappNumber={WHATSAPP_NUMBER}
+          qrImageUrl={QR_CODE_URL}
         />
       )}
     </div>

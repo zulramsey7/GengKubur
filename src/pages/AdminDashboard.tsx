@@ -3,7 +3,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
 import html2canvas from "html2canvas";
 import jsPDF from "jspdf";
-import Receipt from "@/components/Receipt";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import AdminGallery from "@/components/AdminGallery";
 import {
   Table,
   TableBody,
@@ -58,6 +59,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import Receipt from "@/components/Receipt";
 
 interface Booking {
   id: string;
@@ -562,19 +564,29 @@ Sebarang pertanyaan hubungi: 60173304906`;
           </p>
         </div>
         <div className="flex w-full md:w-auto gap-2">
-          <Button onClick={fetchBookings} variant="outline" className="flex-1 md:flex-none">
-            Refresh
-          </Button>
-          <Button onClick={exportToCSV} variant="outline" className="flex-1 md:flex-none">
-            <Download className="h-4 w-4 mr-2" />
-            Export CSV
-          </Button>
           <Button onClick={handleLogout} variant="destructive" className="flex-1 md:flex-none">
             <LogOut className="h-4 w-4 mr-2" />
             Log Keluar
           </Button>
         </div>
       </div>
+
+      <Tabs defaultValue="bookings" className="space-y-4">
+        <TabsList>
+          <TabsTrigger value="bookings">Tempahan</TabsTrigger>
+          <TabsTrigger value="gallery">Galeri</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="bookings" className="space-y-4">
+          <div className="flex justify-end gap-2">
+            <Button onClick={fetchBookings} variant="outline" size="sm">
+              Refresh
+            </Button>
+            <Button onClick={exportToCSV} variant="outline" size="sm">
+              <Download className="h-4 w-4 mr-2" />
+              Export CSV
+            </Button>
+          </div>
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
@@ -1180,6 +1192,13 @@ Sebarang pertanyaan hubungi: 60173304906`;
           )}
         </DialogContent>
       </Dialog>
+
+      </TabsContent>
+
+      <TabsContent value="gallery">
+        <AdminGallery />
+      </TabsContent>
+    </Tabs>
       
       {/* Hidden Receipt Template for PDF Generation */}
       {selectedBooking && (
