@@ -39,11 +39,12 @@ const AboutSection = () => {
           </div>
           
           <div className="relative">
-            <div className="aspect-square md:aspect-[4/3] rounded-2xl overflow-hidden shadow-xl border-4 border-white bg-gray-200 relative z-10">
-               {/* Placeholder for About Image - In a real app, use an actual image */}
-               <div className="w-full h-full bg-gradient-to-br from-green-100 to-green-200 flex items-center justify-center">
-                 <span className="text-primary/40 font-bold text-xl">GengKubur Team</span>
-               </div>
+            <div className="aspect-square md:aspect-[4/3] rounded-2xl overflow-hidden shadow-xl border-4 border-white bg-white relative z-10">
+               <img 
+                 src="/Karakter.png" 
+                 alt="Pasukan GengKubur" 
+                 className="w-full h-full object-contain"
+               />
             </div>
             {/* Decorative elements */}
             <div className="absolute -bottom-6 -right-6 w-32 h-32 bg-primary/10 rounded-full blur-2xl z-0" />

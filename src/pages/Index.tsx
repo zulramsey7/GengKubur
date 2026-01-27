@@ -8,6 +8,7 @@ import PackagesSection from "@/components/PackagesSection";
 import BookingForm from "@/components/BookingForm";
 import CheckoutModal from "@/components/CheckoutModal";
 import Footer from "@/components/Footer";
+import BackgroundMusic from "@/components/BackgroundMusic";
 import paymentQrCode from "@/assets/payment-qr.jpeg";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -106,6 +107,7 @@ const Index = () => {
 
   return (
     <div className="min-h-screen bg-background">
+      <BackgroundMusic />
       <Navbar />
       
       <div id="hero">

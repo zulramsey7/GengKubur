@@ -60,6 +60,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import Receipt from "@/components/Receipt";
+import MusicSettings from "@/components/MusicSettings";
 
 interface Booking {
   id: string;
@@ -575,6 +576,7 @@ Sebarang pertanyaan hubungi: 60173304906`;
         <TabsList>
           <TabsTrigger value="bookings">Tempahan</TabsTrigger>
           <TabsTrigger value="gallery">Galeri</TabsTrigger>
+          <TabsTrigger value="settings">Tetapan</TabsTrigger>
         </TabsList>
 
         <TabsContent value="bookings" className="space-y-4">
@@ -1196,9 +1198,13 @@ Sebarang pertanyaan hubungi: 60173304906`;
       </TabsContent>
 
       <TabsContent value="gallery">
-        <AdminGallery />
-      </TabsContent>
-    </Tabs>
+          <AdminGallery />
+        </TabsContent>
+
+        <TabsContent value="settings">
+          <MusicSettings />
+        </TabsContent>
+      </Tabs>
       
       {/* Hidden Receipt Template for PDF Generation */}
       {selectedBooking && (

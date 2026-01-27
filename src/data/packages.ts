@@ -83,6 +83,29 @@ export const packages: Package[] = [
     ],
   },
   {
+    id: "H",
+    name: "Pakej H",
+    price: 100,
+    description: "Kepok sahaja",
+    features: [
+      "pasang kepok",
+      "tambah tanah",
+    ],
+  },
+  {
+    id: "addon",
+    name: "addon",
+    price: 0,
+    description: "addon",
+    features: [
+      "Pokok Jasmine Medium RM 38",
+      "Pokok Jasmine Small RM 28",
+      "Pokok Latana RM 20",
+      "Batu Sungai Putih Besar RM 50",
+      "Batu Sungai Putih Kecil RM 30"
+    ],
+  },
+  {
     id: "custom",
     name: "Pakej Custom",
     price: 0,
