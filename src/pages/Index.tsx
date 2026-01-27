@@ -62,6 +62,20 @@ const Index = () => {
 
       if (error) throw error;
 
+      if (details.selectedPackage.id === 'custom') {
+        toast({
+          title: "Permintaan Diterima",
+          description: "Kami akan menghubungi anda untuk sebut harga.",
+          duration: 5000,
+        });
+        
+        // Reset form selection but not show checkout
+        setSelectedPackage(null);
+        // Optional: Scroll to top or packages
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+        return;
+      }
+
       const order: OrderSummary = {
         ...details,
         orderId,

@@ -82,4 +82,16 @@ export const packages: Package[] = [
       "Pembersihan ringkas"
     ],
   },
+  {
+    id: "custom",
+    name: "Pakej Custom",
+    price: 0,
+    description: "Pakej Mengikut Permintaan Anda",
+    features: [
+      "Pilih servis yang anda mahukan",
+      "Harga akan dikira oleh admin",
+      "Fleksibel mengikut bajet",
+      "Hubungi kami untuk perbincangan"
+    ],
+  },
 ];

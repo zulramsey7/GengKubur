@@ -1,6 +1,10 @@
-import { Leaf } from "lucide-react";
+import { Leaf, Search } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { useNavigate } from "react-router-dom";
 
 const HeroSection = () => {
+  const navigate = useNavigate();
+
   return (
     <section className="relative overflow-hidden bg-gradient-hero py-16 md:py-24">
       {/* Background Pattern */}
@@ -27,6 +31,26 @@ const HeroSection = () => {
           <p className="mb-8 max-w-2xl text-lg text-primary-foreground/90 md:text-xl animate-slide-up" style={{ animationDelay: "0.1s" }}>
             Perkhidmatan Penyelenggaraan Kubur Profesional & Amanah
           </p>
+
+          {/* Buttons */}
+          <div className="flex flex-col sm:flex-row gap-4 mb-8 animate-slide-up" style={{ animationDelay: "0.15s" }}>
+             <Button 
+               size="lg" 
+               className="bg-white text-primary hover:bg-gray-100 font-bold"
+               onClick={() => document.getElementById('packages')?.scrollIntoView({ behavior: 'smooth' })}
+             >
+               Lihat Pakej
+             </Button>
+             <Button 
+               size="lg" 
+               variant="outline" 
+               className="bg-primary-foreground/10 text-white border-primary-foreground/20 hover:bg-primary-foreground/20"
+               onClick={() => navigate('/tracking')}
+             >
+               <Search className="mr-2 h-4 w-4" />
+               Semak Status
+             </Button>
+          </div>
 
           {/* Trust Badges */}
           <div className="flex flex-wrap items-center justify-center gap-4 animate-fade-in" style={{ animationDelay: "0.2s" }}>

@@ -78,6 +78,7 @@ const CheckoutModal = ({ order, onClose, qrImageUrl, whatsappNumber }: CheckoutM
         .from('bookings')
         .update({ 
           payment_proof_url: publicUrl,
+          payment_method: 'online',
           // Optional: update status to 'paid' or similar if you have such status
         })
         .eq('order_id', order.orderId);
@@ -128,10 +129,51 @@ Terima kasih kerana memilih GengKubur! 🙏`;
     return encodeURIComponent(message);
   };
 
-  const handleWhatsAppClick = () => {
-    const cleanNumber = whatsappNumber.replace(/[^0-9]/g, "");
-    const message = generateWhatsAppMessage();
-    window.open(`https://wa.me/${cleanNumber}?text=${message}`, "_blank");
+  const handleWhatsAppClick = async () => {
+    try {
+      // Fetch current notes first
+      const { data: currentBooking } = await supabase
+        .from('bookings')
+        .select('notes')
+        .eq('order_id', order.orderId)
+        .single();
+
+      const updates: any = { payment_method: paymentMethod };
+      const cashNote = '(Bayaran: Tunai)';
+
+      if (currentBooking) {
+        let newNotes = currentBooking.notes || '';
+        
+        if (paymentMethod === 'cash') {
+          if (!newNotes.includes(cashNote)) {
+            newNotes = newNotes ? `${newNotes} ${cashNote}` : cashNote;
+          }
+        } else {
+          // Remove if exists
+          newNotes = newNotes.replace(cashNote, '').trim();
+        }
+        
+        if (newNotes !== currentBooking.notes) {
+          updates.notes = newNotes;
+        }
+      }
+
+      // Update payment method and notes
+      await supabase
+        .from('bookings')
+        .update(updates)
+        .eq('order_id', order.orderId);
+
+      const cleanNumber = whatsappNumber.replace(/[^0-9]/g, "");
+      const message = generateWhatsAppMessage();
+      window.open(`https://wa.me/${cleanNumber}?text=${message}`, "_blank");
+    } catch (error) {
+      console.error('Error updating payment method:', error);
+      // Still open WhatsApp even if update fails
+      const cleanNumber = whatsappNumber.replace(/[^0-9]/g, "");
+      const message = generateWhatsAppMessage();
+      window.open(`https://wa.me/${cleanNumber}?text=${message}`, "_blank");
+    }
   };
 
   return (

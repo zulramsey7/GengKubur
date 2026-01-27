@@ -6,12 +6,16 @@ interface Booking {
   customer_name: string;
   phone_number: string;
   location: string;
-  notes: string;
+  notes: string | null;
   package_name: string;
   package_price: number;
   status: string;
+  payment_method: string | null;
   payment_proof_url: string | null;
+  additional_items: { description: string; price: number }[] | null;
+  admin_remarks: string | null;
   order_id: string;
+  payment_balance: number | null;
 }
 
 interface ReceiptProps {
@@ -19,6 +23,9 @@ interface ReceiptProps {
 }
 
 const Receipt = forwardRef<HTMLDivElement, ReceiptProps>(({ booking }, ref) => {
+  const additionalItemsTotal = booking.additional_items?.reduce((sum, item) => sum + item.price, 0) || 0;
+  const totalAmount = booking.package_price + additionalItemsTotal;
+
   return (
     <div 
       ref={ref} 
@@ -69,7 +76,9 @@ const Receipt = forwardRef<HTMLDivElement, ReceiptProps>(({ booking }, ref) => {
             </div>
             <div className="flex justify-between border-b border-dashed border-gray-200 pb-2">
               <span className="text-gray-600">Kaedah</span>
-              <span className="font-medium">Online Transfer</span>
+              <span className="font-medium">
+                {(booking.payment_method === 'cash' || booking.notes?.includes('(Bayaran: Tunai)')) ? 'Tunai' : 'Online Transfer'}
+              </span>
             </div>
             <div className="flex justify-between border-b border-dashed border-gray-200 pb-2">
               <span className="text-gray-600">Tarikh Tempahan</span>
@@ -100,16 +109,41 @@ const Receipt = forwardRef<HTMLDivElement, ReceiptProps>(({ booking }, ref) => {
                 RM {booking.package_price.toFixed(2)}
               </td>
             </tr>
+            {booking.additional_items?.map((item, index) => (
+              <tr key={index}>
+                <td className="py-6">
+                  <p className="font-bold text-gray-900 text-lg mb-1">{item.description}</p>
+                </td>
+                <td className="py-6 text-right font-medium text-gray-900">
+                  RM {item.price.toFixed(2)}
+                </td>
+              </tr>
+            ))}
           </tbody>
           <tfoot>
             <tr>
               <td className="pt-8 text-right font-bold text-gray-900">Jumlah Besar</td>
               <td className="pt-8 text-right font-bold text-2xl text-primary">
-                RM {booking.package_price.toFixed(2)}
+                RM {totalAmount.toFixed(2)}
               </td>
             </tr>
+            {booking.payment_balance && booking.payment_balance > 0 && (
+              <tr>
+                <td className="pt-2 text-right font-bold text-gray-500">Baki Perlu Dibayar</td>
+                <td className="pt-2 text-right font-bold text-xl text-red-500">
+                  RM {booking.payment_balance.toFixed(2)}
+                </td>
+              </tr>
+            )}
           </tfoot>
         </table>
+        
+        {booking.admin_remarks && (
+          <div className="mt-8 border-t pt-4">
+             <h4 className="font-bold text-gray-900 mb-2">Catatan Admin:</h4>
+             <p className="text-gray-600">{booking.admin_remarks}</p>
+          </div>
+        )}
       </div>
 
       {/* Footer */}

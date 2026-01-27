@@ -45,7 +45,9 @@ const PackageCard = ({ pkg, isSelected, onSelect }: PackageCardProps) => {
 
       {/* Price */}
       <div className="mb-4">
-        <span className="text-3xl font-bold text-foreground">RM {pkg.price}</span>
+        <span className="text-3xl font-bold text-foreground">
+          {pkg.price === 0 ? "Harga Custom" : `RM ${pkg.price}`}
+        </span>
       </div>
 
       {/* Description */}

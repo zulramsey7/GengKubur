@@ -38,6 +38,10 @@ const BookingForm = ({ selectedPackage, onSubmit }: BookingFormProps) => {
       newErrors.location = "Sila masukkan lokasi kubur";
     }
 
+    if (selectedPackage?.id === 'custom' && !formData.notes.trim()) {
+      newErrors.notes = "Sila nyatakan keperluan anda";
+    }
+
     if (!selectedPackage) {
       newErrors.package = "Sila pilih pakej";
     }
@@ -137,15 +141,19 @@ const BookingForm = ({ selectedPackage, onSubmit }: BookingFormProps) => {
               <div className="mb-6">
                 <Label htmlFor="notes" className="mb-2 flex items-center gap-2 text-sm font-medium">
                   <FileText className="h-4 w-4 text-primary" />
-                  Catatan Tambahan (Pilihan)
+                  {selectedPackage?.id === 'custom' ? 'Nyatakan Keperluan Anda (Wajib)' : 'Catatan Tambahan (Pilihan)'}
                 </Label>
                 <Textarea
                   id="notes"
-                  placeholder="Maklumat tambahan jika ada..."
+                  placeholder={selectedPackage?.id === 'custom' ? "Sila nyatakan servis yang anda perlukan..." : "Maklumat tambahan jika ada..."}
                   value={formData.notes}
                   onChange={(e) => handleChange("notes", e.target.value)}
                   rows={3}
+                  className={errors.notes ? "border-destructive" : ""}
                 />
+                {errors.notes && (
+                  <p className="mt-1 text-sm text-destructive">{errors.notes}</p>
+                )}
               </div>
 
               {/* Selected Package Summary */}
@@ -153,7 +161,7 @@ const BookingForm = ({ selectedPackage, onSubmit }: BookingFormProps) => {
                 <div className="mb-6 rounded-xl bg-primary/5 p-4 border border-primary/20">
                   <p className="text-sm font-medium text-muted-foreground">Pakej Dipilih:</p>
                   <p className="text-lg font-bold text-primary">
-                    {selectedPackage.name} - RM {selectedPackage.price}
+                    {selectedPackage.name} - {selectedPackage.price === 0 ? "Harga akan dikira oleh admin" : `RM ${selectedPackage.price}`}
                   </p>
                   <p className="text-sm text-muted-foreground">{selectedPackage.description}</p>
                 </div>
@@ -165,7 +173,7 @@ const BookingForm = ({ selectedPackage, onSubmit }: BookingFormProps) => {
 
               {/* Submit Button */}
               <Button type="submit" variant="hero" size="xl" className="w-full">
-                Teruskan ke Pembayaran
+                {selectedPackage?.id === 'custom' ? 'Hantar Permintaan Sebut Harga' : 'Teruskan ke Pembayaran'}
               </Button>
             </div>
           </form>

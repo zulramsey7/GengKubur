@@ -21,8 +21,14 @@ export interface Database {
           package_name: string
           package_price: number
           status: string
+          payment_method: string | null
           payment_proof_url: string | null
+          before_photo_url: string | null
+          after_photo_url: string | null
+          additional_items: Json | null
+          admin_remarks: string | null
           order_id: string
+          payment_balance: number | null
         }
         Insert: {
           id?: string
@@ -35,8 +41,14 @@ export interface Database {
           package_name: string
           package_price: number
           status?: string
+          payment_method?: string | null
           payment_proof_url?: string | null
+          before_photo_url?: string | null
+          after_photo_url?: string | null
+          additional_items?: Json | null
+          admin_remarks?: string | null
           order_id: string
+          payment_balance?: number | null
         }
         Update: {
           id?: string
@@ -49,8 +61,14 @@ export interface Database {
           package_name?: string
           package_price?: number
           status?: string
+          payment_method?: string | null
           payment_proof_url?: string | null
+          before_photo_url?: string | null
+          after_photo_url?: string | null
+          additional_items?: Json | null
+          admin_remarks?: string | null
           order_id?: string
+          payment_balance?: number | null
         }
         Relationships: []
       }
