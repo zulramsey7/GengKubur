@@ -138,7 +138,7 @@ Terima kasih kerana memilih GengKubur! 🙏`;
         .eq('order_id', order.orderId)
         .single();
 
-      const updates: any = { payment_method: paymentMethod };
+      const updates: { payment_method: string; notes?: string | null } = { payment_method: paymentMethod };
       const cashNote = '(Bayaran: Tunai)';
 
       if (currentBooking) {

@@ -59,6 +59,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import type { Json } from "@/integrations/supabase/types";
 
 interface Booking {
   id: string;
@@ -280,7 +281,7 @@ Sebarang pertanyaan hubungi: 60173304906`;
     try {
       const { error } = await supabase
         .from('bookings')
-        .update({ additional_items: newItems as any }) // Type assertion needed for JSONB
+        .update({ additional_items: newItems as Json })
         .eq('id', selectedBooking.id);
 
       if (error) throw error;
@@ -314,7 +315,7 @@ Sebarang pertanyaan hubungi: 60173304906`;
     try {
       const { error } = await supabase
         .from('bookings')
-        .update({ additional_items: newItems as any })
+        .update({ additional_items: newItems as Json })
         .eq('id', selectedBooking.id);
 
       if (error) throw error;

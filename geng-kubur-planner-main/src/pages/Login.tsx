@@ -75,11 +75,12 @@ const Login = () => {
         });
         setView("login");
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Auth error:", error);
+      const message = error instanceof Error ? error.message : "Sesuatu yang tidak kena berlaku.";
       toast({
         title: "Ralat",
-        description: error.message || "Sesuatu yang tidak kena berlaku.",
+        description: message,
         variant: "destructive",
       });
     } finally {
