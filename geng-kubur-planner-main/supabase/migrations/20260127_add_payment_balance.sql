@@ -1,2 +1,0 @@
-
-ALTER TABLE bookings ADD COLUMN IF NOT EXISTS payment_balance NUMERIC DEFAULT 0;
