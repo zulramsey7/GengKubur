@@ -74,7 +74,7 @@ export const packages: Package[] = [
   {
     id: "G",
     name: "Pakej G",
-    price: 100,
+    price: 150,
     description: "Siram Kubur 1 Bulan",
     features: [
       "Sehari 2 Kali",

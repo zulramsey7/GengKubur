@@ -61,6 +61,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import Receipt from "@/components/Receipt";
 import MusicSettings from "@/components/MusicSettings";
+import NotificationSender from "@/components/NotificationSender";
 
 interface Booking {
   id: string;
@@ -577,6 +578,7 @@ Sebarang pertanyaan hubungi: 60173304906`;
           <TabsTrigger value="bookings">Tempahan</TabsTrigger>
           <TabsTrigger value="gallery">Galeri</TabsTrigger>
           <TabsTrigger value="settings">Tetapan</TabsTrigger>
+          <TabsTrigger value="notifications">Notifikasi</TabsTrigger>
         </TabsList>
 
         <TabsContent value="bookings" className="space-y-4">
@@ -1203,6 +1205,10 @@ Sebarang pertanyaan hubungi: 60173304906`;
 
         <TabsContent value="settings">
           <MusicSettings />
+        </TabsContent>
+
+        <TabsContent value="notifications">
+          <NotificationSender />
         </TabsContent>
       </Tabs>
       

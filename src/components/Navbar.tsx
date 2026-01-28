@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { Menu, X, Leaf, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Link, useNavigate, useLocation } from "react-router-dom";
+import { NotificationPermission } from "./NotificationPermission";
 
 const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
@@ -77,6 +78,7 @@ const Navbar = () => {
                 {link.name}
               </button>
             ))}
+            <NotificationPermission isScrolled={isScrolled} />
             <Button 
               variant={isScrolled ? "default" : "secondary"}
               size="sm"

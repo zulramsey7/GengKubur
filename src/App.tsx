@@ -8,6 +8,7 @@ import NotFound from "./pages/NotFound";
 import AdminDashboard from "./pages/AdminDashboard";
 import Login from "./pages/Login";
 import Tracking from "./pages/Tracking";
+import { NotificationListener } from "@/components/NotificationListener";
 
 const queryClient = new QueryClient();
 
@@ -16,6 +17,7 @@ const App = () => (
     <TooltipProvider>
       <Toaster />
       <Sonner />
+      <NotificationListener />
       <BrowserRouter>
         <Routes>
           <Route path="/" element={<Index />} />
