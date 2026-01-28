@@ -1,5 +1,5 @@
 import { useState, useRef } from "react";
-import { X, Copy, Check, MessageCircle, QrCode, Calendar, User, MapPin, Package, Upload, Image, Loader2, CreditCard, Banknote } from "lucide-react";
+import { X, Copy, Check, MessageCircle, QrCode, Calendar, User, MapPin, Package, Upload, Image, Loader2, CreditCard, Banknote, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { OrderSummary } from "@/types/booking";
@@ -104,6 +104,10 @@ const CheckoutModal = ({ order, onClose, qrImageUrl, whatsappNumber }: CheckoutM
   };
 
   const generateWhatsAppMessage = () => {
+    const addonsText = order.additionalItems && order.additionalItems.length > 0 
+      ? `\n➕ *Add-on:*\n${order.additionalItems.map(item => `- ${item.name} (RM ${item.price})`).join('\n')}`
+      : "";
+
     const message = `🌿 *RESIT TEMPAHAN GENGKUBUR*
 
 📋 *ID Tempahan:* ${order.orderId}
@@ -115,7 +119,7 @@ No. Tel: ${order.phoneNumber}
 Lokasi: ${order.location}
 
 📦 *Pakej Dipilih:*
-${order.selectedPackage?.name} - ${order.selectedPackage?.description}
+${order.selectedPackage?.name} - ${order.selectedPackage?.description}${addonsText}
 
 💰 *Jumlah Bayaran:* RM ${order.totalAmount}
 💳 *Kaedah Bayaran:* ${paymentMethod === 'online' ? 'Online Transfer / QR' : 'Tunai (Cash)'}
@@ -231,6 +235,25 @@ Terima kasih kerana memilih GengKubur! 🙏`;
                 <span className="text-muted-foreground">Pakej:</span>
                 <span className="font-medium text-foreground">{order.selectedPackage?.name}</span>
               </div>
+              
+              {/* Add-ons Display */}
+              {order.additionalItems && order.additionalItems.length > 0 && (
+                <div className="flex items-start gap-3 text-sm pt-2 border-t border-muted-foreground/20 mt-2">
+                   <Plus className="h-4 w-4 text-primary mt-0.5" />
+                   <div className="flex-1">
+                     <span className="text-muted-foreground block mb-1">Add-on:</span>
+                     <ul className="space-y-1">
+                       {order.additionalItems.map((item, idx) => (
+                         <li key={idx} className="font-medium text-foreground flex justify-between">
+                           <span>{item.name}</span>
+                           <span>RM {item.price}</span>
+                         </li>
+                       ))}
+                     </ul>
+                   </div>
+                </div>
+              )}
+
               <div className="flex items-center gap-3 text-sm">
                 <Calendar className="h-4 w-4 text-primary" />
                 <span className="text-muted-foreground">Tarikh:</span>

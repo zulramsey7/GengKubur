@@ -12,6 +12,7 @@ import BackgroundMusic from "@/components/BackgroundMusic";
 import paymentQrCode from "@/assets/payment-qr.jpeg";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 
 // Configuration
 const WHATSAPP_NUMBER = "60173304906";
@@ -19,17 +20,14 @@ const QR_CODE_URL = paymentQrCode;
 
 const Index = () => {
   const [selectedPackage, setSelectedPackage] = useState<Package | null>(null);
+  const [showBookingForm, setShowBookingForm] = useState(false);
   const [showCheckout, setShowCheckout] = useState(false);
   const [currentOrder, setCurrentOrder] = useState<OrderSummary | null>(null);
-  const formRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
 
   const handleSelectPackage = (pkg: Package) => {
     setSelectedPackage(pkg);
-    // Scroll to form after selection
-    setTimeout(() => {
-      formRef.current?.scrollIntoView({ behavior: "smooth" });
-    }, 100);
+    setShowBookingForm(true);
   };
 
   const generateOrderId = () => {
@@ -49,6 +47,15 @@ const Index = () => {
       day: "numeric",
     });
 
+    const addonsTotal = details.additionalItems.reduce((sum, item) => sum + item.price, 0);
+    const totalPrice = details.selectedPackage.price + addonsTotal;
+
+    // Prepare additional items for DB
+    const dbAdditionalItems = details.additionalItems.map(item => ({
+      description: item.name,
+      price: item.price
+    }));
+
     try {
       const { error } = await supabase
         .from('bookings')
@@ -61,10 +68,13 @@ const Index = () => {
           package_name: details.selectedPackage.name,
           package_price: details.selectedPackage.price,
           order_id: orderId,
-          status: 'pending'
+          status: 'pending',
+          additional_items: dbAdditionalItems
         });
 
       if (error) throw error;
+
+      setShowBookingForm(false); // Close booking modal
 
       if (details.selectedPackage.id === 'custom') {
         toast({
@@ -73,10 +83,7 @@ const Index = () => {
           duration: 5000,
         });
         
-        // Reset form selection but not show checkout
         setSelectedPackage(null);
-        // Optional: Scroll to top or packages
-        window.scrollTo({ top: 0, behavior: 'smooth' });
         return;
       }
 
@@ -84,7 +91,7 @@ const Index = () => {
         ...details,
         orderId,
         orderDate,
-        totalAmount: details.selectedPackage.price,
+        totalAmount: totalPrice,
       };
 
       setCurrentOrder(order);
@@ -121,20 +128,31 @@ const Index = () => {
         onSelectPackage={handleSelectPackage} 
       />
 
-      <GallerySection />
-
-      <div className="container py-12 md:py-16">
-        <div ref={formRef}>
-          <BookingForm 
-            selectedPackage={selectedPackage}
-            onSubmit={handleBookingSubmit}
-          />
-        </div>
+      <div className="bg-muted/30">
+        <GallerySection />
       </div>
 
       <div id="contact">
         <Footer />
       </div>
+
+      {/* Booking Form Modal */}
+      <Dialog open={showBookingForm} onOpenChange={setShowBookingForm}>
+        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Lengkapkan Tempahan</DialogTitle>
+            <DialogDescription>
+              Sila isi maklumat di bawah untuk meneruskan tempahan pakej {selectedPackage?.name}.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4">
+            <BookingForm 
+              selectedPackage={selectedPackage}
+              onSubmit={handleBookingSubmit}
+            />
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {showCheckout && currentOrder && (
         <CheckoutModal

@@ -7,12 +7,20 @@ export interface Package {
   popular?: boolean;
 }
 
+export interface AdditionalItem {
+  id: string;
+  name: string;
+  price: number;
+  description: string;
+}
+
 export interface BookingDetails {
   customerName: string;
   phoneNumber: string;
   location: string;
   selectedPackage: Package | null;
   notes?: string;
+  additionalItems: AdditionalItem[];
 }
 
 export interface OrderSummary extends BookingDetails {

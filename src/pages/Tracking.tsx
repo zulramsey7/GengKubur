@@ -1,12 +1,15 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { Search, Package, User, MapPin, Calendar, CheckCircle2, Clock, XCircle, Image as ImageIcon, ArrowLeft } from "lucide-react";
+import { Search, Package, User, MapPin, Calendar, CheckCircle2, Clock, XCircle, Image as ImageIcon, ArrowLeft, Download } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { useNavigate } from "react-router-dom";
+import html2canvas from "html2canvas";
+import jsPDF from "jspdf";
+import Receipt from "@/components/Receipt";
 
 interface TrackingResult {
   id: string;
@@ -14,16 +17,25 @@ interface TrackingResult {
   status: string;
   customer_name: string;
   package_name: string;
+  package_price: number;
   location: string;
   created_at: string;
+  notes: string | null;
+  payment_method: string | null;
+  payment_proof_url: string | null;
   before_photo_url: string | null;
   after_photo_url: string | null;
+  additional_items: { description: string; price: number }[] | null;
+  admin_remarks: string | null;
+  payment_balance: number | null;
+  phone_number: string;
 }
 
 const Tracking = () => {
   const [orderId, setOrderId] = useState("");
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<TrackingResult | null>(null);
+  const receiptRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
   const navigate = useNavigate();
 
@@ -47,7 +59,7 @@ const Tracking = () => {
     try {
       const { data, error } = await supabase
         .from('bookings')
-        .select('id, order_id, status, customer_name, package_name, location, created_at, before_photo_url, after_photo_url')
+        .select('*')
         .ilike('order_id', cleanOrderId)
         .maybeSingle();
 
@@ -62,7 +74,12 @@ const Tracking = () => {
           variant: "destructive",
         });
       } else {
-        setResult(data as TrackingResult);
+        // Transform the data to match TrackingResult/Receipt expected structure
+        const bookingData: TrackingResult = {
+          ...data,
+          additional_items: data.additional_items as any, // Cast JSON to expected type
+        };
+        setResult(bookingData);
       }
     } catch (error) {
       console.error('Error fetching booking:', error);
@@ -73,6 +90,48 @@ const Tracking = () => {
       });
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleDownloadPDF = async () => {
+    if (!receiptRef.current || !result) return;
+
+    try {
+      toast({
+        title: "Menjana Resit",
+        description: "Sila tunggu sebentar...",
+      });
+
+      const canvas = await html2canvas(receiptRef.current, {
+        scale: 2,
+        useCORS: true,
+        logging: false
+      });
+      
+      const imgData = canvas.toDataURL('image/png');
+      const pdf = new jsPDF({
+        orientation: 'portrait',
+        unit: 'mm',
+        format: 'a4'
+      });
+      
+      const imgWidth = 210;
+      const imgHeight = (canvas.height * imgWidth) / canvas.width;
+      
+      pdf.addImage(imgData, 'PNG', 0, 0, imgWidth, imgHeight);
+      pdf.save(`Resit-${result.order_id}.pdf`);
+      
+      toast({
+        title: "Berjaya",
+        description: "Resit PDF berjaya dimuat turun",
+      });
+    } catch (error) {
+      console.error('PDF generation error:', error);
+      toast({
+        title: "Error",
+        description: "Gagal menjana PDF",
+        variant: "destructive",
+      });
     }
   };
 
@@ -155,10 +214,21 @@ const Tracking = () => {
                     </CardTitle>
                     <p className="text-sm text-gray-500 mt-1">Order ID: {result.order_id}</p>
                   </div>
-                  <Badge className={`${getStatusColor(result.status)} text-white px-4 py-1.5 text-sm flex items-center gap-2`}>
-                    {getStatusIcon(result.status)}
-                    {getStatusText(result.status)}
-                  </Badge>
+                  <div className="flex flex-col gap-2 items-end">
+                    <Badge className={`${getStatusColor(result.status)} text-white px-4 py-1.5 text-sm flex items-center gap-2`}>
+                      {getStatusIcon(result.status)}
+                      {getStatusText(result.status)}
+                    </Badge>
+                    <Button 
+                      size="sm" 
+                      variant="outline" 
+                      className="gap-2 text-xs"
+                      onClick={handleDownloadPDF}
+                    >
+                      <Download className="h-3 w-3" />
+                      Muat Turun Resit
+                    </Button>
+                  </div>
                 </div>
               </CardHeader>
               <CardContent className="pt-4">
@@ -198,69 +268,61 @@ const Tracking = () => {
             {(result.before_photo_url || result.after_photo_url) && (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <Card className="shadow-md overflow-hidden">
-                  <CardHeader className="bg-gray-50 border-b pb-4">
-                    <CardTitle className="text-lg font-semibold flex items-center gap-2">
-                      <ImageIcon className="h-5 w-5 text-gray-500" />
-                      Sebelum
+                  <CardHeader className="bg-gray-50 border-b pb-3">
+                    <CardTitle className="text-sm font-medium flex items-center gap-2 text-gray-700">
+                      <ImageIcon className="h-4 w-4" />
+                      Sebelum Pembersihan
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="p-0">
                     {result.before_photo_url ? (
-                      <div className="relative aspect-video w-full overflow-hidden bg-gray-100">
+                      <div className="aspect-video w-full overflow-hidden bg-gray-100 relative group">
                         <img 
                           src={result.before_photo_url} 
-                          alt="Keadaan Sebelum" 
-                          className="object-cover w-full h-full hover:scale-105 transition-transform duration-300"
+                          alt="Sebelum" 
+                          className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
                         />
                       </div>
                     ) : (
-                      <div className="aspect-video flex flex-col items-center justify-center bg-gray-100 text-gray-400">
-                        <ImageIcon className="h-12 w-12 mb-2 opacity-20" />
-                        <p className="text-sm">Tiada gambar</p>
+                      <div className="aspect-video w-full flex items-center justify-center bg-gray-100 text-gray-400 text-sm">
+                        Tiada gambar
                       </div>
                     )}
                   </CardContent>
                 </Card>
 
                 <Card className="shadow-md overflow-hidden">
-                  <CardHeader className="bg-gray-50 border-b pb-4">
-                    <CardTitle className="text-lg font-semibold flex items-center gap-2 text-primary">
-                      <ImageIcon className="h-5 w-5" />
-                      Selepas
+                  <CardHeader className="bg-gray-50 border-b pb-3">
+                    <CardTitle className="text-sm font-medium flex items-center gap-2 text-gray-700">
+                      <ImageIcon className="h-4 w-4" />
+                      Selepas Pembersihan
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="p-0">
                     {result.after_photo_url ? (
-                      <div className="relative aspect-video w-full overflow-hidden bg-gray-100">
+                      <div className="aspect-video w-full overflow-hidden bg-gray-100 relative group">
                         <img 
                           src={result.after_photo_url} 
-                          alt="Keadaan Selepas" 
-                          className="object-cover w-full h-full hover:scale-105 transition-transform duration-300"
+                          alt="Selepas" 
+                          className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
                         />
                       </div>
                     ) : (
-                      <div className="aspect-video flex flex-col items-center justify-center bg-gray-100 text-gray-400">
-                        <ImageIcon className="h-12 w-12 mb-2 opacity-20" />
-                        <p className="text-sm">Tiada gambar</p>
+                      <div className="aspect-video w-full flex items-center justify-center bg-gray-100 text-gray-400 text-sm">
+                        Tiada gambar
                       </div>
                     )}
                   </CardContent>
                 </Card>
               </div>
             )}
-            
-            {result.status === 'completed' && !result.after_photo_url && (
-               <Card className="bg-blue-50 border-blue-200">
-                 <CardContent className="py-4 flex items-center gap-3">
-                   <div className="bg-blue-100 p-2 rounded-full">
-                     <ImageIcon className="h-5 w-5 text-blue-600" />
-                   </div>
-                   <p className="text-sm text-blue-800">
-                     Gambar bukti kerja akan dimuat naik oleh admin setelah kerja selesai. Sila semak semula nanti.
-                   </p>
-                 </CardContent>
-               </Card>
-            )}
+          </div>
+        )}
+
+        {/* Hidden Receipt Template */}
+        {result && (
+          <div className="absolute left-[-9999px] top-0">
+            <Receipt ref={receiptRef} booking={result} />
           </div>
         )}
       </div>
