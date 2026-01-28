@@ -2,7 +2,6 @@ import { useState, useEffect } from "react";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import BeforeAfterSlider from "./BeforeAfterSlider";
 
 interface GalleryImage {
   id: string | number;
@@ -109,20 +108,6 @@ const GallerySection = () => {
           </h2>
           <p className="text-muted-foreground max-w-2xl mx-auto">
             Lihat sebahagian daripada hasil kerja penyelenggaraan yang telah kami laksanakan. Kami memastikan setiap kubur dijaga dengan rapi dan hormat.
-          </p>
-        </div>
-
-        {/* Featured Before/After Slider */}
-        <div className="mb-16 max-w-4xl mx-auto">
-          <h3 className="text-xl font-bold text-center mb-6">Transformasi Penyelenggaraan</h3>
-          <BeforeAfterSlider 
-            beforeImage="https://images.unsplash.com/photo-1623869733479-7170884d6332?q=80&w=800&auto=format&fit=crop"
-            afterImage="https://images.unsplash.com/photo-1623157521039-4467d5192110?q=80&w=800&auto=format&fit=crop"
-            beforeLabel="Sebelum (Bersemak)"
-            afterLabel="Selepas (Dibersihkan)"
-          />
-          <p className="text-center text-sm text-muted-foreground mt-4">
-            Gerakkan slider untuk melihat perbezaan
           </p>
         </div>
 
