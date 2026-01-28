@@ -13,6 +13,7 @@ import paymentQrCode from "@/assets/payment-qr.jpeg";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import WhatsAppFloat from "@/components/WhatsAppFloat";
 
 // Configuration
 const WHATSAPP_NUMBER = "60173304906";
@@ -162,6 +163,8 @@ const Index = () => {
           qrImageUrl={QR_CODE_URL}
         />
       )}
+
+      <WhatsAppFloat />
     </div>
   );
 };

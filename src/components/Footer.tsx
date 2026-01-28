@@ -24,10 +24,15 @@ const Footer = () => {
           <div>
             <h3 className="font-semibold mb-4">Hubungi Kami</h3>
             <div className="space-y-3 text-sm text-primary-foreground/80">
-              <div className="flex items-center gap-3">
+              <a 
+                href="https://wa.me/60173304906?text=Salam%20GengKubur%2C%20saya%20ada%20pertanyaan." 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="flex items-center gap-3 hover:text-white transition-colors"
+              >
                 <Phone className="h-4 w-4" />
-                <span>017-3304906</span>
-              </div>
+                <span>017-3304906 (WhatsApp)</span>
+              </a>
               <div className="flex items-center gap-3">
                 <Mail className="h-4 w-4" />
                 <span>gengkubur@email.com</span>
