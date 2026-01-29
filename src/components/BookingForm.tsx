@@ -202,12 +202,11 @@ const BookingForm = ({ selectedPackage, onSubmit }: BookingFormProps) => {
                     className="mt-1 pointer-events-none"
                   />
                   <div className="space-y-1">
-                    <Label 
-                      htmlFor={addon.id} 
-                      className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
+                    <span 
+                      className="text-sm font-medium leading-none cursor-pointer"
                     >
                       {addon.name}
-                    </Label>
+                    </span>
                     <p className="text-xs text-muted-foreground">
                       {addon.description}
                     </p>
