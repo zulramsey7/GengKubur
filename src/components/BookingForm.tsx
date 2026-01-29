@@ -4,7 +4,6 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
 import { BookingDetails, Package, AdditionalItem } from "@/types/booking";
 
 interface BookingFormProps {
@@ -196,11 +195,14 @@ const BookingForm = ({ selectedPackage, onSubmit }: BookingFormProps) => {
                   `}
                   onClick={() => toggleAddon(addon.id)}
                 >
-                  <Checkbox 
-                    id={addon.id} 
-                    checked={selectedAddons.includes(addon.id)}
-                    className="mt-1 pointer-events-none"
-                  />
+                  <div 
+                    className={`
+                      flex h-4 w-4 shrink-0 items-center justify-center rounded-sm border border-primary ring-offset-background
+                      ${selectedAddons.includes(addon.id) ? 'bg-primary text-primary-foreground' : 'bg-transparent'}
+                    `}
+                  >
+                    {selectedAddons.includes(addon.id) && <Check className="h-3 w-3" />}
+                  </div>
                   <div className="space-y-1">
                     <span 
                       className="text-sm font-medium leading-none cursor-pointer"
