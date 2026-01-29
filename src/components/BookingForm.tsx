@@ -199,8 +199,7 @@ const BookingForm = ({ selectedPackage, onSubmit }: BookingFormProps) => {
                   <Checkbox 
                     id={addon.id} 
                     checked={selectedAddons.includes(addon.id)}
-                    onCheckedChange={() => toggleAddon(addon.id)}
-                    className="mt-1"
+                    className="mt-1 pointer-events-none"
                   />
                   <div className="space-y-1">
                     <Label 
