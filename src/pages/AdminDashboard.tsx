@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
 import html2canvas from "html2canvas";
@@ -28,6 +28,7 @@ import {
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Select,
   SelectContent,
@@ -38,7 +39,7 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, ExternalLink, LogOut, Eye, DollarSign, Calendar, Clock, FileText, Send, Download, Trash2, Search, Upload, Image as ImageIcon, BarChart3, TrendingUp } from "lucide-react";
+import { Loader2, ExternalLink, LogOut, Eye, DollarSign, Calendar, Clock, FileText, Send, Download, Trash2, Search, Upload, Image as ImageIcon, BarChart3, TrendingUp, ChevronLeft, ChevronRight } from "lucide-react";
 import {
   BarChart,
   Bar,
@@ -77,10 +78,22 @@ interface Booking {
   payment_proof_url: string | null;
   before_photo_url: string | null;
   after_photo_url: string | null;
-  additional_items: { description: string; price: number }[] | null;
+  additional_items: AdditionalItem[] | null;
   admin_remarks: string | null;
   order_id: string;
   payment_balance: number | null;
+}
+
+const BOOKING_STATUS = {
+  PENDING: 'pending',
+  CONFIRMED: 'confirmed',
+  COMPLETED: 'completed',
+  CANCELLED: 'cancelled',
+} as const;
+
+interface AdditionalItem {
+  description: string;
+  price: number;
 }
 
 const AdminDashboard = () => {
@@ -94,6 +107,9 @@ const AdminDashboard = () => {
   const [paymentBalance, setPaymentBalance] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
+  const [selectedBookingIds, setSelectedBookingIds] = useState<string[]>([]);
   const receiptRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
   const navigate = useNavigate();
@@ -139,6 +155,76 @@ Sebarang pertanyaan hubungi: 60173304906`;
       setReceiptText(text);
     }
   }, [selectedBooking]);
+
+  const toggleSelectAll = () => {
+    if (selectedBookingIds.length === filteredBookings.length) {
+      setSelectedBookingIds([]);
+    } else {
+      setSelectedBookingIds(filteredBookings.map(b => b.id));
+    }
+  };
+
+  const toggleSelectBooking = (id: string) => {
+    if (selectedBookingIds.includes(id)) {
+      setSelectedBookingIds(selectedBookingIds.filter(bookingId => bookingId !== id));
+    } else {
+      setSelectedBookingIds([...selectedBookingIds, id]);
+    }
+  };
+
+  const handleBulkStatusUpdate = async (status: string) => {
+    try {
+      const { error } = await supabase
+        .from('bookings')
+        .update({ status })
+        .in('id', selectedBookingIds);
+
+      if (error) throw error;
+
+      setBookings(bookings.map(b => 
+        selectedBookingIds.includes(b.id) ? { ...b, status } : b
+      ));
+      
+      toast({
+        title: "Berjaya",
+        description: `${selectedBookingIds.length} tempahan telah dikemaskini kepada ${status}.`,
+      });
+      setSelectedBookingIds([]);
+    } catch (error) {
+      console.error('Error updating bookings:', error);
+      toast({
+        title: "Ralat",
+        description: "Gagal mengemaskini tempahan.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleBulkDelete = async () => {
+    try {
+      const { error } = await supabase
+        .from('bookings')
+        .delete()
+        .in('id', selectedBookingIds);
+
+      if (error) throw error;
+
+      setBookings(bookings.filter(b => !selectedBookingIds.includes(b.id)));
+      
+      toast({
+        title: "Berjaya",
+        description: `${selectedBookingIds.length} tempahan telah dipadam.`,
+      });
+      setSelectedBookingIds([]);
+    } catch (error) {
+      console.error('Error deleting bookings:', error);
+      toast({
+        title: "Ralat",
+        description: "Gagal memadam tempahan.",
+        variant: "destructive",
+      });
+    }
+  };
 
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>, type: 'before' | 'after') => {
     const file = event.target.files?.[0];
@@ -450,9 +536,9 @@ Sebarang pertanyaan hubungi: 60173304906`;
 
   const getStatusColor = (status: string) => {
     switch (status.toLowerCase()) {
-      case 'confirmed': return 'bg-green-500 hover:bg-green-600';
-      case 'completed': return 'bg-blue-500 hover:bg-blue-600';
-      case 'cancelled': return 'bg-red-500 hover:bg-red-600';
+      case BOOKING_STATUS.CONFIRMED: return 'bg-green-500 hover:bg-green-600';
+      case BOOKING_STATUS.COMPLETED: return 'bg-blue-500 hover:bg-blue-600';
+      case BOOKING_STATUS.CANCELLED: return 'bg-red-500 hover:bg-red-600';
       default: return 'bg-yellow-500 hover:bg-yellow-600';
     }
   };
@@ -515,38 +601,78 @@ Sebarang pertanyaan hubungi: 60173304906`;
     document.body.removeChild(link);
   };
 
-  const filteredBookings = bookings.filter(booking => {
-    const matchesSearch = 
-      booking.customer_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      booking.order_id.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      booking.phone_number.includes(searchTerm);
-    
-    const matchesStatus = statusFilter === "all" || booking.status === statusFilter;
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 5;
 
-    return matchesSearch && matchesStatus;
-  });
+  const filteredBookings = useMemo(() => {
+    return bookings.filter(booking => {
+      const matchesSearch = 
+        booking.customer_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        booking.order_id.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        booking.phone_number.includes(searchTerm);
+      
+      const matchesStatus = statusFilter === "all" || booking.status === statusFilter;
+
+      let matchesDate = true;
+      if (startDate) {
+        const bookingDate = new Date(booking.created_at);
+        const start = new Date(startDate);
+        start.setHours(0, 0, 0, 0);
+        matchesDate = matchesDate && bookingDate >= start;
+      }
+      
+      if (endDate) {
+        const bookingDate = new Date(booking.created_at);
+        const end = new Date(endDate);
+        end.setHours(23, 59, 59, 999);
+        matchesDate = matchesDate && bookingDate <= end;
+      }
+
+      return matchesSearch && matchesStatus && matchesDate;
+    });
+  }, [bookings, searchTerm, statusFilter, startDate, endDate]);
+
+  // Reset page when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, statusFilter, startDate, endDate]);
+
+  const paginatedBookings = useMemo(() => {
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    return filteredBookings.slice(startIndex, startIndex + itemsPerPage);
+  }, [filteredBookings, currentPage]);
+
+  const totalPages = Math.ceil(filteredBookings.length / itemsPerPage);
 
   // Stats Calculation
-  const totalSales = bookings.reduce((sum, b) => sum + calculateTotal(b), 0);
-  const totalOrders = bookings.length;
-  const pendingOrders = bookings.filter(b => b.status === 'pending').length;
-  const completedOrders = bookings.filter(b => b.status === 'completed').length;
+  const stats = useMemo(() => {
+    return {
+      totalSales: bookings.reduce((sum, b) => sum + calculateTotal(b), 0),
+      totalOrders: bookings.length,
+      pendingOrders: bookings.filter(b => b.status === BOOKING_STATUS.PENDING).length,
+      completedOrders: bookings.filter(b => b.status === BOOKING_STATUS.COMPLETED).length
+    };
+  }, [bookings]);
+
+  const { totalSales, totalOrders, pendingOrders, completedOrders } = stats;
 
   // Chart Data Preparation
-  const last7Days = Array.from({ length: 7 }, (_, i) => {
-    const d = new Date();
-    d.setDate(d.getDate() - i);
-    return d.toISOString().split('T')[0];
-  }).reverse();
+  const chartData = useMemo(() => {
+    const last7Days = Array.from({ length: 7 }, (_, i) => {
+      const d = new Date();
+      d.setDate(d.getDate() - i);
+      return d.toISOString().split('T')[0];
+    }).reverse();
 
-  const chartData = last7Days.map(date => {
-    const dayBookings = bookings.filter(b => b.created_at.startsWith(date));
-    return {
-      date: new Date(date).toLocaleDateString('ms-MY', { day: 'numeric', month: 'short' }),
-      sales: dayBookings.reduce((sum, b) => sum + calculateTotal(b), 0),
-      orders: dayBookings.length
-    };
-  });
+    return last7Days.map(date => {
+      const dayBookings = bookings.filter(b => b.created_at.startsWith(date));
+      return {
+        date: new Date(date).toLocaleDateString('ms-MY', { day: 'numeric', month: 'short' }),
+        sales: dayBookings.reduce((sum, b) => sum + calculateTotal(b), 0),
+        orders: dayBookings.length
+      };
+    });
+  }, [bookings]);
 
   if (loading) {
     return (
@@ -658,42 +784,118 @@ Sebarang pertanyaan hubungi: 60173304906`;
         </CardContent>
       </Card>
 
-      <div className="flex flex-col md:flex-row gap-4 mb-6">
-        <div className="relative flex-1">
-          <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Cari nama, order ID, atau no. tel..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-8"
-          />
+      <div className="space-y-4 mb-6">
+        <div className="flex flex-col md:flex-row gap-4">
+          <div className="relative flex-1">
+            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Cari nama, order ID, atau no. tel..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-8"
+            />
+          </div>
+          <div className="w-full md:w-[200px]">
+            <Select value={statusFilter} onValueChange={setStatusFilter}>
+              <SelectTrigger>
+                <SelectValue placeholder="Tapis Status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Semua Status</SelectItem>
+                <SelectItem value={BOOKING_STATUS.PENDING}>Pending</SelectItem>
+                <SelectItem value={BOOKING_STATUS.CONFIRMED}>Confirmed</SelectItem>
+                <SelectItem value={BOOKING_STATUS.COMPLETED}>Completed</SelectItem>
+                <SelectItem value={BOOKING_STATUS.CANCELLED}>Cancelled</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
         </div>
-        <div className="w-full md:w-[200px]">
-          <Select value={statusFilter} onValueChange={setStatusFilter}>
-            <SelectTrigger>
-              <SelectValue placeholder="Tapis Status" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Semua Status</SelectItem>
-              <SelectItem value="pending">Pending</SelectItem>
-              <SelectItem value="confirmed">Confirmed</SelectItem>
-              <SelectItem value="completed">Completed</SelectItem>
-              <SelectItem value="cancelled">Cancelled</SelectItem>
-            </SelectContent>
-          </Select>
+
+        <div className="flex flex-wrap items-end gap-3 bg-muted/30 p-3 rounded-lg border">
+             <div className="grid gap-1.5">
+                <label className="text-xs font-medium text-muted-foreground">Tarikh Mula</label>
+                <Input 
+                    type="date" 
+                    value={startDate} 
+                    onChange={(e) => setStartDate(e.target.value)}
+                    className="w-[160px] bg-background"
+                />
+            </div>
+            <div className="grid gap-1.5">
+                <label className="text-xs font-medium text-muted-foreground">Tarikh Tamat</label>
+                <Input 
+                    type="date" 
+                    value={endDate} 
+                    onChange={(e) => setEndDate(e.target.value)}
+                    className="w-[160px] bg-background"
+                />
+            </div>
+            {(startDate || endDate) && (
+                <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    onClick={() => { setStartDate(""); setEndDate(""); }}
+                    className="h-10 text-muted-foreground hover:text-foreground"
+                >
+                    Reset Tarikh
+                </Button>
+            )}
         </div>
       </div>
 
+      {selectedBookingIds.length > 0 && (
+        <div className="flex items-center gap-2 p-2 bg-primary/10 rounded-lg mb-4 border border-primary/20 animate-in fade-in slide-in-from-top-2">
+          <span className="text-sm font-medium px-2">
+            {selectedBookingIds.length} dipilih
+          </span>
+          <div className="h-4 w-px bg-border mx-2" />
+          <Select onValueChange={handleBulkStatusUpdate}>
+            <SelectTrigger className="w-[150px] h-8 text-xs bg-background">
+              <SelectValue placeholder="Tukar Status" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value={BOOKING_STATUS.PENDING}>Pending</SelectItem>
+              <SelectItem value={BOOKING_STATUS.CONFIRMED}>Confirmed</SelectItem>
+              <SelectItem value={BOOKING_STATUS.COMPLETED}>Completed</SelectItem>
+              <SelectItem value={BOOKING_STATUS.CANCELLED}>Cancelled</SelectItem>
+            </SelectContent>
+          </Select>
+          
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button variant="destructive" size="sm" className="h-8 text-xs">
+                <Trash2 className="h-3 w-3 mr-1" />
+                Padam ({selectedBookingIds.length})
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Padam {selectedBookingIds.length} Tempahan?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  Tindakan ini tidak boleh dibatalkan. Semua tempahan yang dipilih akan dipadam secara kekal.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Batal</AlertDialogCancel>
+                <AlertDialogAction onClick={handleBulkDelete} className="bg-red-500 hover:bg-red-600">
+                  Padam Semua
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        </div>
+      )}
+
       {/* Mobile View (Cards) */}
       <div className="grid gap-4 md:hidden">
-        {filteredBookings.length === 0 ? (
+        {paginatedBookings.length === 0 ? (
           <Card>
             <CardContent className="py-8 text-center text-muted-foreground">
               Tiada tempahan dijumpai
             </CardContent>
           </Card>
         ) : (
-          filteredBookings.map((booking) => (
+          paginatedBookings.map((booking) => (
             <Card key={booking.id} className="overflow-hidden">
               <CardHeader className="pb-2">
                 <div className="flex justify-between items-start">
@@ -747,10 +949,10 @@ Sebarang pertanyaan hubungi: 60173304906`;
                       <SelectValue placeholder="Status" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="pending">Pending</SelectItem>
-                      <SelectItem value="confirmed">Confirmed</SelectItem>
-                      <SelectItem value="completed">Completed</SelectItem>
-                      <SelectItem value="cancelled">Cancelled</SelectItem>
+                      <SelectItem value={BOOKING_STATUS.PENDING}>Pending</SelectItem>
+                      <SelectItem value={BOOKING_STATUS.CONFIRMED}>Confirmed</SelectItem>
+                      <SelectItem value={BOOKING_STATUS.COMPLETED}>Completed</SelectItem>
+                      <SelectItem value={BOOKING_STATUS.CANCELLED}>Cancelled</SelectItem>
                     </SelectContent>
                   </Select>
                   
@@ -792,6 +994,13 @@ Sebarang pertanyaan hubungi: 60173304906`;
         <Table>
           <TableHeader>
             <TableRow>
+              <TableHead className="w-[40px]">
+                <Checkbox 
+                  checked={filteredBookings.length > 0 && selectedBookingIds.length === filteredBookings.length}
+                  onCheckedChange={toggleSelectAll}
+                  aria-label="Select all"
+                />
+              </TableHead>
               <TableHead>Order ID</TableHead>
               <TableHead>Tarikh</TableHead>
               <TableHead>Pelanggan</TableHead>
@@ -803,15 +1012,22 @@ Sebarang pertanyaan hubungi: 60173304906`;
             </TableRow>
           </TableHeader>
           <TableBody>
-            {filteredBookings.length === 0 ? (
+            {paginatedBookings.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={8} className="text-center h-24">
+                <TableCell colSpan={9} className="text-center h-24">
                   Tiada tempahan dijumpai
                 </TableCell>
               </TableRow>
             ) : (
-              filteredBookings.map((booking) => (
-                <TableRow key={booking.id}>
+              paginatedBookings.map((booking) => (
+                <TableRow key={booking.id} data-state={selectedBookingIds.includes(booking.id) && "selected"}>
+                  <TableCell>
+                    <Checkbox 
+                      checked={selectedBookingIds.includes(booking.id)}
+                      onCheckedChange={() => toggleSelectBooking(booking.id)}
+                      aria-label={`Select booking ${booking.order_id}`}
+                    />
+                  </TableCell>
                   <TableCell className="font-mono">{booking.order_id}</TableCell>
                   <TableCell>
                     {new Date(booking.created_at).toLocaleDateString("ms-MY")}
@@ -855,10 +1071,10 @@ Sebarang pertanyaan hubungi: 60173304906`;
                           <SelectValue placeholder="Status" />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="pending">Pending</SelectItem>
-                          <SelectItem value="confirmed">Confirmed</SelectItem>
-                          <SelectItem value="completed">Completed</SelectItem>
-                          <SelectItem value="cancelled">Cancelled</SelectItem>
+                          <SelectItem value={BOOKING_STATUS.PENDING}>Pending</SelectItem>
+                          <SelectItem value={BOOKING_STATUS.CONFIRMED}>Confirmed</SelectItem>
+                          <SelectItem value={BOOKING_STATUS.COMPLETED}>Completed</SelectItem>
+                          <SelectItem value={BOOKING_STATUS.CANCELLED}>Cancelled</SelectItem>
                         </SelectContent>
                       </Select>
                       <Button variant="ghost" size="icon" onClick={() => setSelectedBooking(booking)}>
@@ -893,6 +1109,38 @@ Sebarang pertanyaan hubungi: 60173304906`;
           </TableBody>
         </Table>
       </div>
+
+      {/* Pagination Controls */}
+      {filteredBookings.length > 0 && (
+        <div className="flex items-center justify-between space-x-2 py-4">
+          <div className="text-sm text-muted-foreground">
+            Menunjukkan {((currentPage - 1) * itemsPerPage) + 1} hingga {Math.min(currentPage * itemsPerPage, filteredBookings.length)} daripada {filteredBookings.length} tempahan
+          </div>
+          <div className="flex items-center space-x-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+              disabled={currentPage === 1}
+            >
+              <ChevronLeft className="h-4 w-4 mr-1" />
+              Sebelumnya
+            </Button>
+            <div className="text-sm font-medium">
+              Halaman {currentPage} dari {totalPages}
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+              disabled={currentPage === totalPages}
+            >
+              Seterusnya
+              <ChevronRight className="h-4 w-4 ml-1" />
+            </Button>
+          </div>
+        </div>
+      )}
 
       <Dialog open={!!selectedBooking} onOpenChange={(open) => !open && setSelectedBooking(null)}>
         <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto w-[95vw] rounded-xl">

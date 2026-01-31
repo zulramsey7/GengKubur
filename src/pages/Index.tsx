@@ -1,5 +1,6 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Package, BookingDetails, OrderSummary } from "@/types/booking";
+import { ArrowUp } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import HeroSection from "@/components/HeroSection";
 import AboutSection from "@/components/AboutSection";
@@ -8,6 +9,8 @@ import PackagesSection from "@/components/PackagesSection";
 import BookingForm from "@/components/BookingForm";
 import CheckoutModal from "@/components/CheckoutModal";
 import Footer from "@/components/Footer";
+import FAQSection from "@/components/FAQSection";
+import WhyChooseUs from "@/components/WhyChooseUs";
 import BackgroundMusic from "@/components/BackgroundMusic";
 import paymentQrCode from "@/assets/payment-qr.jpeg";
 import { supabase } from "@/integrations/supabase/client";
@@ -24,7 +27,25 @@ const Index = () => {
   const [showBookingForm, setShowBookingForm] = useState(false);
   const [showCheckout, setShowCheckout] = useState(false);
   const [currentOrder, setCurrentOrder] = useState<OrderSummary | null>(null);
+  const [showScrollTop, setShowScrollTop] = useState(false);
   const { toast } = useToast();
+
+  useEffect(() => {
+    // Set page title
+    document.title = "Geng Kubur - Perkhidmatan Pengurusan Kubur";
+
+    // Handle scroll for "Back to Top" button
+    const handleScroll = () => {
+      setShowScrollTop(window.scrollY > 400);
+    };
+
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  const scrollToTop = () => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
 
   const handleSelectPackage = (pkg: Package) => {
     setSelectedPackage(pkg);
@@ -122,6 +143,8 @@ const Index = () => {
         <HeroSection />
       </div>
 
+      <WhyChooseUs />
+
       <AboutSection />
       
       <PackagesSection 
@@ -132,6 +155,8 @@ const Index = () => {
       <div className="bg-muted/30">
         <GallerySection />
       </div>
+
+      <FAQSection />
 
       <div id="contact">
         <Footer />
@@ -165,6 +190,17 @@ const Index = () => {
       )}
 
       <WhatsAppFloat />
+      
+      {/* Scroll To Top Button */}
+      <button
+        onClick={scrollToTop}
+        className={`fixed bottom-24 right-5 z-40 p-3 rounded-full bg-primary text-primary-foreground shadow-lg transition-all duration-300 hover:scale-110 hover:shadow-xl ${
+          showScrollTop ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10 pointer-events-none'
+        }`}
+        aria-label="Kembali ke atas"
+      >
+        <ArrowUp className="w-5 h-5" />
+      </button>
     </div>
   );
 };

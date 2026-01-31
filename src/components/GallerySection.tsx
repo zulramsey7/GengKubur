@@ -13,47 +13,7 @@ interface GalleryImage {
 const GallerySection = () => {
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   
-  // Placeholder images - in a real app these would come from the database or assets
-  const initialImages: GalleryImage[] = [
-    {
-      id: 1,
-      src: "https://images.unsplash.com/photo-1596483756247-f25b29232938?q=80&w=800&auto=format&fit=crop",
-      alt: "Pembersihan Kawasan Kubur",
-      category: "Pembersihan"
-    },
-    {
-      id: 2,
-      src: "https://images.unsplash.com/photo-1558440786-932d0c5a082e?q=80&w=800&auto=format&fit=crop",
-      alt: "Pencucian Batu Nisan",
-      category: "Pencucian"
-    },
-    {
-      id: 3,
-      src: "https://images.unsplash.com/photo-1623869733479-7170884d6332?q=80&w=800&auto=format&fit=crop",
-      alt: "Kerja-kerja Rumput",
-      category: "Landskap"
-    },
-    {
-      id: 4,
-      src: "https://images.unsplash.com/photo-1623157521039-4467d5192110?q=80&w=800&auto=format&fit=crop",
-      alt: "Hasil Selepas Pembersihan",
-      category: "Selepas"
-    },
-    {
-      id: 5,
-      src: "https://images.unsplash.com/photo-1589923188900-85dae5233271?q=80&w=800&auto=format&fit=crop",
-      alt: "Penjagaan Rapi",
-      category: "Penyelenggaraan"
-    },
-    {
-      id: 6,
-      src: "https://images.unsplash.com/photo-1605218427368-35b85a3ddc2c?q=80&w=800&auto=format&fit=crop",
-      alt: "Suasana Tenang",
-      category: "Persekitaran"
-    }
-  ];
-
-  const [galleryImages, setGalleryImages] = useState<GalleryImage[]>(initialImages);
+  const [galleryImages, setGalleryImages] = useState<GalleryImage[]>([]);
 
   useEffect(() => {
     const fetchImages = async () => {
@@ -75,8 +35,7 @@ const GallerySection = () => {
           category: item.category || "General",
         }));
         
-        // Combine DB images with initial images
-        setGalleryImages([...dbImages, ...initialImages]);
+        setGalleryImages(dbImages);
       }
     };
 

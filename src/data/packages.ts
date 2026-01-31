@@ -75,10 +75,10 @@ export const packages: Package[] = [
     id: "G",
     name: "Pakej G",
     price: 150,
-    description: "Siram Kubur 1 Bulan",
+    description: "Siram Kubur Sebulan",
     features: [
-      "Sehari 2 Kali",
-      "Pagi Petang",
+      "Seminggu 4 Hari Siram",
+      "Setiap Pagi Petang",
       "Pembersihan ringkas"
     ],
   },

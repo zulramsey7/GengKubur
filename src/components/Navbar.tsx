@@ -41,6 +41,7 @@ const Navbar = () => {
     { name: "Pakej", id: "packages" },
     { name: "Perihal", id: "about" },
     { name: "Galeri", id: "gallery" },
+    { name: "FAQ", id: "faq" },
     { name: "Hubungi Kami", id: "contact" },
   ];
 
