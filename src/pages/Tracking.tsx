@@ -102,10 +102,52 @@ const Tracking = () => {
         description: "Sila tunggu sebentar...",
       });
 
+      // Helper to convert image URL to Base64
+      const getBase64FromUrl = async (url: string): Promise<string> => {
+        try {
+            const response = await fetch(url, { mode: 'cors' });
+            const blob = await response.blob();
+            return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onloadend = () => resolve(reader.result as string);
+            reader.onerror = reject;
+            reader.readAsDataURL(blob);
+            });
+        } catch (error) {
+            console.warn('CORS fetch failed, trying proxy or fallback', error);
+            throw error;
+        }
+      };
+
+      // Pre-process images
+      const images = Array.from(receiptRef.current.getElementsByTagName('img'));
+      const imageReplacements = new Map<string, string>();
+
+      // Load all images in parallel
+      await Promise.all(images.map(async (img) => {
+        // Skip if already base64 or internal
+        if (img.src && !img.src.startsWith('data:') && img.src.includes('supabase')) {
+          try {
+            const base64 = await getBase64FromUrl(img.src);
+            imageReplacements.set(img.src, base64);
+          } catch (e) {
+            console.warn('Failed to convert image to base64:', img.src, e);
+          }
+        }
+      }));
+
       const canvas = await html2canvas(receiptRef.current, {
         scale: 2,
         useCORS: true,
-        logging: false
+        logging: false,
+        onclone: (clonedDoc) => {
+            const clonedImages = Array.from(clonedDoc.getElementsByTagName('img'));
+            clonedImages.forEach(img => {
+                if (imageReplacements.has(img.src)) {
+                    img.src = imageReplacements.get(img.src)!;
+                }
+            });
+        }
       });
       
       const imgData = canvas.toDataURL('image/png');

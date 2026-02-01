@@ -39,7 +39,7 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, ExternalLink, LogOut, Eye, DollarSign, Calendar, Clock, FileText, Send, Download, Trash2, Search, Upload, Image as ImageIcon, Camera, BarChart3, TrendingUp, ChevronLeft, ChevronRight } from "lucide-react";
+import { Loader2, ExternalLink, LogOut, Eye, DollarSign, Calendar, Clock, FileText, Send, Download, Trash2, Search, Upload, Image as ImageIcon, Camera, BarChart3, TrendingUp, ChevronLeft, ChevronRight, Edit, Save, X, User, Package } from "lucide-react";
 import {
   BarChart,
   Bar,
@@ -161,9 +161,92 @@ const AdminDashboard = () => {
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
   const [selectedBookingIds, setSelectedBookingIds] = useState<string[]>([]);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editedBooking, setEditedBooking] = useState<Partial<Booking> | null>(null);
+  const [editDiscount, setEditDiscount] = useState(0);
+  const [editDeposit, setEditDeposit] = useState(0);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
   const receiptRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
   const navigate = useNavigate();
+
+  const additionalItemsTotal = selectedBooking?.additional_items?.reduce((sum, item) => sum + item.price, 0) || 0;
+  const totalBookingPrice = (selectedBooking?.package_price || 0) + additionalItemsTotal;
+
+  const handleEditClick = () => {
+    setIsEditing(true);
+    setEditedBooking(selectedBooking);
+    setEditDiscount(0);
+    if (selectedBooking) {
+      // Calculate current deposit based on price and balance
+      // If balance is null, assume full payment pending (deposit 0) or full paid? 
+      // Usually payment_balance is tracked. If null, maybe it's 0? 
+      // Let's assume balance exists.
+      const currentBalance = selectedBooking.payment_balance ?? selectedBooking.package_price;
+      const calculatedDeposit = selectedBooking.package_price - currentBalance;
+      setEditDeposit(calculatedDeposit > 0 ? calculatedDeposit : 0);
+    }
+  };
+
+  const handleCancelEdit = () => {
+    setIsEditing(false);
+    setEditedBooking(null);
+    setEditDiscount(0);
+    setEditDeposit(0);
+  };
+
+  const handleSaveEdit = async () => {
+    if (!editedBooking || !selectedBooking) return;
+
+    try {
+      // Calculate final values
+      // If user entered a discount, subtract from the current package price in the edit form
+      const basePrice = editedBooking.package_price || 0;
+      const finalPrice = basePrice - editDiscount;
+      const finalBalance = finalPrice + additionalItemsTotal - editDeposit;
+
+      // Construct a note if discount was applied
+      let updatedNotes = editedBooking.notes || "";
+      if (editDiscount > 0) {
+        const discountNote = `\n[Diskaun] RM ${editDiscount} diberikan pada ${new Date().toLocaleDateString("ms-MY")}.`;
+        updatedNotes += discountNote;
+      }
+
+      const { error } = await supabase
+        .from('bookings')
+        .update({
+          customer_name: editedBooking.customer_name,
+          phone_number: editedBooking.phone_number,
+          location: editedBooking.location,
+          notes: updatedNotes,
+          package_name: editedBooking.package_name,
+          package_price: finalPrice,
+          payment_balance: finalBalance
+        })
+        .eq('id', selectedBooking.id);
+
+      if (error) throw error;
+
+      toast({
+        title: "Berjaya",
+        description: "Maklumat tempahan berjaya dikemaskini",
+      });
+
+      // Update local state
+      const updatedBooking = { ...selectedBooking, ...editedBooking } as Booking;
+      setSelectedBooking(updatedBooking);
+      setBookings(bookings.map(b => b.id === selectedBooking.id ? updatedBooking : b));
+      setIsEditing(false);
+      setEditedBooking(null);
+    } catch (error) {
+      console.error('Error updating booking:', error);
+      toast({
+        title: "Ralat",
+        description: "Gagal mengemaskini tempahan",
+        variant: "destructive",
+      });
+    }
+  };
 
   useEffect(() => {
     if (selectedBooking) {
@@ -411,15 +494,29 @@ Sebarang pertanyaan hubungi: 60173304906`;
     const currentItems = selectedBooking.additional_items || [];
     const newItems = [...currentItems, newItem];
 
+    // Calculate new balance: Current Balance + New Item Price
+    // If payment_balance is null, assume it equals package_price (full amount due) + existing additional items?
+    // Safer to use current payment_balance or 0 if null. 
+    // Actually if null, it usually means package_price.
+    const currentBalance = selectedBooking.payment_balance ?? selectedBooking.package_price;
+    const newBalance = currentBalance + price;
+
     try {
       const { error } = await supabase
         .from('bookings')
-        .update({ additional_items: newItems as any }) // Type assertion needed for JSONB
+        .update({ 
+          additional_items: newItems as any,
+          payment_balance: newBalance
+        })
         .eq('id', selectedBooking.id);
 
       if (error) throw error;
 
-      const updatedBooking = { ...selectedBooking, additional_items: newItems };
+      const updatedBooking = { 
+        ...selectedBooking, 
+        additional_items: newItems,
+        payment_balance: newBalance
+      };
       setSelectedBooking(updatedBooking);
       setBookings(bookings.map(b => b.id === selectedBooking.id ? updatedBooking : b));
       setNewItemDescription("");
@@ -443,17 +540,28 @@ Sebarang pertanyaan hubungi: 60173304906`;
     if (!selectedBooking || !selectedBooking.additional_items) return;
 
     const newItems = [...selectedBooking.additional_items];
+    const removedItem = newItems[index];
     newItems.splice(index, 1);
+
+    const currentBalance = selectedBooking.payment_balance ?? selectedBooking.package_price;
+    const newBalance = Math.max(0, currentBalance - removedItem.price);
 
     try {
       const { error } = await supabase
         .from('bookings')
-        .update({ additional_items: newItems as any })
+        .update({ 
+          additional_items: newItems as any,
+          payment_balance: newBalance
+        })
         .eq('id', selectedBooking.id);
 
       if (error) throw error;
 
-      const updatedBooking = { ...selectedBooking, additional_items: newItems };
+      const updatedBooking = { 
+        ...selectedBooking, 
+        additional_items: newItems,
+        payment_balance: newBalance
+      };
       setSelectedBooking(updatedBooking);
       setBookings(bookings.map(b => b.id === selectedBooking.id ? updatedBooking : b));
       
@@ -487,10 +595,52 @@ Sebarang pertanyaan hubungi: 60173304906`;
     if (!receiptRef.current || !selectedBooking) return;
 
     try {
+      // Helper to convert image URL to Base64
+      const getBase64FromUrl = async (url: string): Promise<string> => {
+        try {
+            const response = await fetch(url, { mode: 'cors' });
+            const blob = await response.blob();
+            return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onloadend = () => resolve(reader.result as string);
+            reader.onerror = reject;
+            reader.readAsDataURL(blob);
+            });
+        } catch (error) {
+            console.warn('CORS fetch failed, trying proxy or fallback', error);
+            throw error;
+        }
+      };
+
+      // Pre-process images
+      const images = Array.from(receiptRef.current.getElementsByTagName('img'));
+      const imageReplacements = new Map<string, string>();
+
+      // Load all images in parallel
+      await Promise.all(images.map(async (img) => {
+        // Skip if already base64 or internal
+        if (img.src && !img.src.startsWith('data:') && img.src.includes('supabase')) {
+          try {
+            const base64 = await getBase64FromUrl(img.src);
+            imageReplacements.set(img.src, base64);
+          } catch (e) {
+            console.warn('Failed to convert image to base64:', img.src, e);
+          }
+        }
+      }));
+
       const canvas = await html2canvas(receiptRef.current, {
         scale: 2,
         useCORS: true,
-        logging: false
+        logging: false,
+        onclone: (clonedDoc) => {
+            const clonedImages = Array.from(clonedDoc.getElementsByTagName('img'));
+            clonedImages.forEach(img => {
+                if (imageReplacements.has(img.src)) {
+                    img.src = imageReplacements.get(img.src)!;
+                }
+            });
+        }
       });
       
       const imgData = canvas.toDataURL('image/png');
@@ -532,6 +682,8 @@ Sebarang pertanyaan hubungi: 60173304906`;
   }, [navigate]);
 
   const handleLogout = async () => {
+    if (isLoggingOut) return;
+    setIsLoggingOut(true);
     try {
       await supabase.auth.signOut();
     } catch (error) {
@@ -751,9 +903,13 @@ Sebarang pertanyaan hubungi: 60173304906`;
           </p>
         </div>
         <div className="flex w-full md:w-auto gap-2">
-          <Button onClick={handleLogout} variant="destructive" className="flex-1 md:flex-none">
-            <LogOut className="h-4 w-4 mr-2" />
-            Log Keluar
+          <Button onClick={handleLogout} variant="destructive" className="flex-1 md:flex-none" disabled={isLoggingOut}>
+            {isLoggingOut ? (
+              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+            ) : (
+              <LogOut className="h-4 w-4 mr-2" />
+            )}
+            {isLoggingOut ? "Sedang Log Keluar..." : "Log Keluar"}
           </Button>
         </div>
       </div>
@@ -1201,73 +1357,237 @@ Sebarang pertanyaan hubungi: 60173304906`;
         </div>
       )}
 
-      <Dialog open={!!selectedBooking} onOpenChange={(open) => !open && setSelectedBooking(null)}>
+      <Dialog open={!!selectedBooking} onOpenChange={(open) => {
+        if (!open) {
+          setSelectedBooking(null);
+          setIsEditing(false);
+          setEditedBooking(null);
+        }
+      }}>
         <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto w-[95vw] rounded-xl">
           <DialogHeader>
-            <DialogTitle>Butiran Tempahan</DialogTitle>
-            <DialogDescription>
-              ID: {selectedBooking?.order_id}
-            </DialogDescription>
+            <div className="flex items-center justify-between pr-8">
+              <div>
+                <DialogTitle>Butiran Tempahan</DialogTitle>
+                <DialogDescription>
+                  ID: {selectedBooking?.order_id}
+                </DialogDescription>
+              </div>
+              {selectedBooking && (
+                <div className="flex gap-2">
+                  {isEditing ? (
+                    <>
+                      <Button size="sm" variant="outline" onClick={handleCancelEdit}>
+                        <X className="h-4 w-4 mr-1" /> Batal
+                      </Button>
+                      <Button size="sm" onClick={handleSaveEdit}>
+                        <Save className="h-4 w-4 mr-1" /> Simpan
+                      </Button>
+                    </>
+                  ) : (
+                    <Button size="sm" variant="outline" onClick={handleEditClick}>
+                      <Edit className="h-4 w-4 mr-1" /> Edit
+                    </Button>
+                  )}
+                </div>
+              )}
+            </div>
           </DialogHeader>
           
           {selectedBooking && (
             <div className="grid gap-6 py-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-4">
-                  <div>
-                    <h3 className="font-semibold mb-2 flex items-center gap-2">
-                      Maklumat Pelanggan
-                    </h3>
-                    <div className="bg-muted/50 p-3 rounded-lg space-y-2 text-sm">
-                      <div className="grid grid-cols-[80px_1fr]">
-                        <span className="text-muted-foreground">Nama:</span>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {/* Customer Info */}
+                <Card>
+                  <CardHeader className="pb-3 bg-muted/20">
+                    <CardTitle className="text-sm font-medium flex items-center gap-2">
+                      <User className="h-4 w-4" /> Maklumat Pelanggan
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="pt-4 space-y-3 text-sm">
+                    <div className="grid grid-cols-[80px_1fr] items-center">
+                      <span className="text-muted-foreground">Nama:</span>
+                      {isEditing ? (
+                        <Input 
+                          value={editedBooking?.customer_name || ''} 
+                          onChange={(e) => setEditedBooking(prev => ({ ...prev!, customer_name: e.target.value }))}
+                          className="h-8"
+                        />
+                      ) : (
                         <span className="font-medium">{selectedBooking.customer_name}</span>
-                      </div>
-                      <div className="grid grid-cols-[80px_1fr]">
-                        <span className="text-muted-foreground">No. Tel:</span>
+                      )}
+                    </div>
+                    <div className="grid grid-cols-[80px_1fr] items-center">
+                      <span className="text-muted-foreground">No. Tel:</span>
+                      {isEditing ? (
+                        <Input 
+                          value={editedBooking?.phone_number || ''} 
+                          onChange={(e) => setEditedBooking(prev => ({ ...prev!, phone_number: e.target.value }))}
+                          className="h-8"
+                        />
+                      ) : (
                         <span className="font-medium">{selectedBooking.phone_number}</span>
-                      </div>
-                      <div className="grid grid-cols-[80px_1fr]">
-                        <span className="text-muted-foreground">Lokasi:</span>
+                      )}
+                    </div>
+                    <div className="grid grid-cols-[80px_1fr] items-center">
+                      <span className="text-muted-foreground">Lokasi:</span>
+                      {isEditing ? (
+                        <Input 
+                          value={editedBooking?.location || ''} 
+                          onChange={(e) => setEditedBooking(prev => ({ ...prev!, location: e.target.value }))}
+                          className="h-8"
+                        />
+                      ) : (
                         <span className="font-medium">{selectedBooking.location}</span>
-                      </div>
+                      )}
                     </div>
-                  </div>
+                  </CardContent>
+                </Card>
 
-                  <div>
-                    <h3 className="font-semibold mb-2">Maklumat Pakej</h3>
-                    <div className="bg-muted/50 p-3 rounded-lg space-y-2 text-sm">
-                      <div className="grid grid-cols-[80px_1fr]">
-                        <span className="text-muted-foreground">Pakej:</span>
+                {/* Package Info */}
+                <Card>
+                  <CardHeader className="pb-3 bg-muted/20">
+                    <CardTitle className="text-sm font-medium flex items-center gap-2">
+                      <Package className="h-4 w-4" /> Maklumat Pakej
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="pt-4 space-y-3 text-sm">
+                    <div className="grid grid-cols-[80px_1fr] items-center">
+                      <span className="text-muted-foreground">Pakej:</span>
+                      {isEditing ? (
+                        <Input 
+                          value={editedBooking?.package_name || ''} 
+                          onChange={(e) => setEditedBooking(prev => ({ ...prev!, package_name: e.target.value }))}
+                          className="h-8"
+                        />
+                      ) : (
                         <span className="font-medium">{selectedBooking.package_name}</span>
+                      )}
+                    </div>
+                    <div className="grid grid-cols-[80px_1fr]">
+                      <span className="text-muted-foreground">Tarikh:</span>
+                      <span className="font-medium">{new Date(selectedBooking.created_at).toLocaleDateString("ms-MY")}</span>
+                    </div>
+                    <div className="grid grid-cols-[80px_1fr] items-center">
+                      <span className="text-muted-foreground">Status:</span>
+                      <Badge className={getStatusColor(selectedBooking.status) + " w-fit"}>{selectedBooking.status}</Badge>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+
+              {/* Financials Section */}
+              <Card className="border-primary/20 shadow-sm">
+                <CardHeader className="pb-3 bg-primary/5">
+                  <CardTitle className="text-sm font-medium flex items-center gap-2 text-primary">
+                    <DollarSign className="h-4 w-4" /> Butiran Kewangan
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="pt-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+                    <div className="space-y-1">
+                      <span className="text-xs text-muted-foreground">Harga Pakej</span>
+                      {isEditing ? (
+                        <div className="flex items-center gap-1">
+                          <span className="text-xs font-medium">RM</span>
+                          <Input 
+                            type="number"
+                            value={editedBooking?.package_price || ''} 
+                            onChange={(e) => setEditedBooking(prev => ({ ...prev!, package_price: parseFloat(e.target.value) }))}
+                            className="h-8"
+                          />
+                        </div>
+                      ) : (
+                        <div className="text-lg font-bold">RM {selectedBooking.package_price.toFixed(2)}</div>
+                      )}
+                    </div>
+
+                    <div className="space-y-1">
+                      <span className="text-xs text-muted-foreground">Caj Tambahan</span>
+                      <div className="text-lg font-bold">RM {additionalItemsTotal.toFixed(2)}</div>
+                    </div>
+
+                    {isEditing && (
+                      <div className="space-y-1">
+                        <span className="text-xs text-muted-foreground">Diskaun</span>
+                        <div className="flex items-center gap-1">
+                          <span className="text-xs font-medium text-red-500">- RM</span>
+                          <Input 
+                            type="number"
+                            value={editDiscount} 
+                            onChange={(e) => setEditDiscount(parseFloat(e.target.value) || 0)}
+                            className="h-8 border-red-200 text-red-600"
+                          />
+                        </div>
                       </div>
-                      <div className="grid grid-cols-[80px_1fr]">
-                        <span className="text-muted-foreground">Harga:</span>
-                        <span className="font-medium">RM {selectedBooking.package_price}</span>
-                      </div>
-                      <div className="grid grid-cols-[80px_1fr]">
-                        <span className="text-muted-foreground">Tarikh:</span>
-                        <span className="font-medium">{new Date(selectedBooking.created_at).toLocaleDateString("ms-MY")}</span>
-                      </div>
-                      <div className="grid grid-cols-[80px_1fr] items-center">
-                        <span className="text-muted-foreground">Status:</span>
-                        <Badge className={getStatusColor(selectedBooking.status) + " w-fit"}>{selectedBooking.status}</Badge>
+                    )}
+
+                    <div className="space-y-1">
+                      <span className="text-xs text-muted-foreground">Deposit Dibayar</span>
+                      {isEditing ? (
+                        <div className="flex items-center gap-1">
+                          <span className="text-xs font-medium text-green-600">RM</span>
+                          <Input 
+                            type="number"
+                            value={editDeposit} 
+                            onChange={(e) => setEditDeposit(parseFloat(e.target.value) || 0)}
+                            className="h-8 border-green-200 text-green-600"
+                          />
+                        </div>
+                      ) : (
+                        <div className="text-lg font-bold text-green-600">
+                          RM {(totalBookingPrice - (selectedBooking.payment_balance ?? totalBookingPrice)).toFixed(2)}
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="space-y-1">
+                      <span className="text-xs text-muted-foreground">
+                        {isEditing ? "Baki (Anggaran)" : "Baki Perlu Dibayar"}
+                      </span>
+                      <div className="text-lg font-bold text-orange-600">
+                        RM {isEditing 
+                          ? ((editedBooking?.package_price || 0) + additionalItemsTotal - editDiscount - editDeposit).toFixed(2)
+                          : (selectedBooking.payment_balance ?? totalBookingPrice).toFixed(2)
+                        }
                       </div>
                     </div>
                   </div>
-                </div>
+                </CardContent>
+              </Card>
 
-                <div className="space-y-4">
-                  <div>
-                    <h3 className="font-semibold mb-2">Catatan</h3>
-                    <p className="text-sm bg-muted p-3 rounded-lg min-h-[80px]">
-                      {selectedBooking.notes || "Tiada catatan"}
-                    </p>
-                  </div>
+              {/* Notes & Proofs */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <Card>
+                  <CardHeader className="pb-3 bg-muted/20">
+                    <CardTitle className="text-sm font-medium flex items-center gap-2">
+                      <FileText className="h-4 w-4" /> Catatan
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="pt-4">
+                    {isEditing ? (
+                      <Textarea 
+                        value={editedBooking?.notes || ''} 
+                        onChange={(e) => setEditedBooking(prev => ({ ...prev!, notes: e.target.value }))}
+                        className="min-h-[100px]"
+                        placeholder="Tambah catatan di sini..."
+                      />
+                    ) : (
+                      <p className="text-sm bg-muted p-3 rounded-lg min-h-[100px] whitespace-pre-wrap">
+                        {selectedBooking.notes || "Tiada catatan"}
+                      </p>
+                    )}
+                  </CardContent>
+                </Card>
 
-                  {selectedBooking.payment_proof_url && (
-                    <div>
-                      <h3 className="font-semibold mb-2">Bukti Pembayaran</h3>
+                <Card>
+                  <CardHeader className="pb-3 bg-muted/20">
+                    <CardTitle className="text-sm font-medium flex items-center gap-2">
+                      <ImageIcon className="h-4 w-4" /> Bukti Pembayaran
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="pt-4">
+                    {selectedBooking.payment_proof_url ? (
                       <div className="border rounded-lg p-2 bg-muted/20 relative group">
                         <img 
                           src={selectedBooking.payment_proof_url}
@@ -1287,9 +1607,13 @@ Sebarang pertanyaan hubungi: 60173304906`;
                           </Button>
                         </div>
                       </div>
-                    </div>
-                  )}
-                </div>
+                    ) : (
+                      <div className="flex items-center justify-center h-[100px] text-muted-foreground text-sm border-2 border-dashed rounded-lg">
+                        Tiada bukti pembayaran
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
               </div>
 
               <div className="mt-2 border-t pt-4">
