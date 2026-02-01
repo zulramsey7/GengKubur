@@ -39,7 +39,7 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, ExternalLink, LogOut, Eye, DollarSign, Calendar, Clock, FileText, Send, Download, Trash2, Search, Upload, Image as ImageIcon, BarChart3, TrendingUp, ChevronLeft, ChevronRight } from "lucide-react";
+import { Loader2, ExternalLink, LogOut, Eye, DollarSign, Calendar, Clock, FileText, Send, Download, Trash2, Search, Upload, Image as ImageIcon, Camera, BarChart3, TrendingUp, ChevronLeft, ChevronRight } from "lucide-react";
 import {
   BarChart,
   Bar,
@@ -95,6 +95,57 @@ interface AdditionalItem {
   description: string;
   price: number;
 }
+
+
+const addWatermark = (file: File): Promise<File> => {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = (readerEvent) => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        if (!ctx) return reject(new Error('Canvas context not available'));
+
+        canvas.width = img.width;
+        canvas.height = img.height;
+
+        // Draw original image
+        ctx.drawImage(img, 0, 0);
+
+        // Watermark settings
+        const text = "GengKubur";
+        const fontSize = Math.max(img.width * 0.05, 20); // 5% of width
+        ctx.font = `bold ${fontSize}px sans-serif`;
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.8)'; 
+        ctx.textAlign = 'right';
+        ctx.textBaseline = 'bottom';
+        
+        // Add shadow/outline for better visibility
+        ctx.shadowColor = 'rgba(0, 0, 0, 0.7)';
+        ctx.shadowBlur = 4;
+        ctx.lineWidth = fontSize / 20;
+        ctx.strokeStyle = 'rgba(0, 0, 0, 0.5)';
+        ctx.strokeText(text, canvas.width - (fontSize / 2), canvas.height - (fontSize / 2));
+        ctx.fillText(text, canvas.width - (fontSize / 2), canvas.height - (fontSize / 2));
+
+        // Convert back to file
+        canvas.toBlob((blob) => {
+          if (!blob) return reject(new Error('Canvas to Blob failed'));
+          const watermarkedFile = new File([blob], file.name, {
+            type: 'image/jpeg',
+            lastModified: Date.now(),
+          });
+          resolve(watermarkedFile);
+        }, 'image/jpeg', 0.85); 
+      };
+      img.onerror = reject;
+      img.src = readerEvent.target?.result as string;
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+};
 
 const AdminDashboard = () => {
   const [bookings, setBookings] = useState<Booking[]>([]);
@@ -227,11 +278,14 @@ Sebarang pertanyaan hubungi: 60173304906`;
   };
 
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>, type: 'before' | 'after') => {
-    const file = event.target.files?.[0];
-    if (!file || !selectedBooking) return;
+    const originalFile = event.target.files?.[0];
+    if (!originalFile || !selectedBooking) return;
 
     try {
-      const fileExt = file.name.split('.').pop();
+      // Add watermark
+      const file = await addWatermark(originalFile);
+      
+      const fileExt = file.name.split('.').pop() || 'jpg';
       const fileName = `${selectedBooking.order_id}_${type}_${Date.now()}.${fileExt}`;
       const filePath = `${fileName}`;
 
@@ -478,8 +532,13 @@ Sebarang pertanyaan hubungi: 60173304906`;
   }, [navigate]);
 
   const handleLogout = async () => {
-    await supabase.auth.signOut();
-    navigate("/login");
+    try {
+      await supabase.auth.signOut();
+    } catch (error) {
+      console.error("Logout error:", error);
+    } finally {
+      navigate("/login");
+    }
   };
 
   const fetchBookings = async () => {
@@ -1268,14 +1327,24 @@ Sebarang pertanyaan hubungi: 60173304906`;
                           </Button>
                         </div>
                       ) : (
-                        <div className="text-center">
+                        <div className="text-center w-full px-2">
                           <ImageIcon className="h-8 w-8 mx-auto text-muted-foreground mb-2 opacity-50" />
-                          <label className="cursor-pointer">
-                            <span className="bg-primary text-primary-foreground hover:bg-primary/90 inline-flex h-8 items-center justify-center rounded-md px-3 text-xs font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50">
-                              Muat Naik
-                            </span>
-                            <input type="file" className="hidden" accept="image/*" onChange={(e) => handleFileUpload(e, 'before')} />
-                          </label>
+                          <div className="flex gap-2 justify-center">
+                            <label className="cursor-pointer">
+                              <span className="bg-primary text-primary-foreground hover:bg-primary/90 inline-flex h-8 items-center justify-center rounded-md px-3 text-xs font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50">
+                                <ImageIcon className="h-3 w-3 mr-1" />
+                                Galeri
+                              </span>
+                              <input type="file" className="hidden" accept="image/*" onChange={(e) => handleFileUpload(e, 'before')} />
+                            </label>
+                            <label className="cursor-pointer">
+                              <span className="bg-secondary text-secondary-foreground hover:bg-secondary/80 inline-flex h-8 items-center justify-center rounded-md px-3 text-xs font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50">
+                                <Camera className="h-3 w-3 mr-1" />
+                                Kamera
+                              </span>
+                              <input type="file" className="hidden" accept="image/*" capture="environment" onChange={(e) => handleFileUpload(e, 'before')} />
+                            </label>
+                          </div>
                         </div>
                       )}
                     </div>
@@ -1310,14 +1379,24 @@ Sebarang pertanyaan hubungi: 60173304906`;
                           </Button>
                         </div>
                       ) : (
-                        <div className="text-center">
+                        <div className="text-center w-full px-2">
                           <ImageIcon className="h-8 w-8 mx-auto text-muted-foreground mb-2 opacity-50" />
-                          <label className="cursor-pointer">
-                            <span className="bg-primary text-primary-foreground hover:bg-primary/90 inline-flex h-8 items-center justify-center rounded-md px-3 text-xs font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50">
-                              Muat Naik
-                            </span>
-                            <input type="file" className="hidden" accept="image/*" onChange={(e) => handleFileUpload(e, 'after')} />
-                          </label>
+                          <div className="flex gap-2 justify-center">
+                            <label className="cursor-pointer">
+                              <span className="bg-primary text-primary-foreground hover:bg-primary/90 inline-flex h-8 items-center justify-center rounded-md px-3 text-xs font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50">
+                                <ImageIcon className="h-3 w-3 mr-1" />
+                                Galeri
+                              </span>
+                              <input type="file" className="hidden" accept="image/*" onChange={(e) => handleFileUpload(e, 'after')} />
+                            </label>
+                            <label className="cursor-pointer">
+                              <span className="bg-secondary text-secondary-foreground hover:bg-secondary/80 inline-flex h-8 items-center justify-center rounded-md px-3 text-xs font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50">
+                                <Camera className="h-3 w-3 mr-1" />
+                                Kamera
+                              </span>
+                              <input type="file" className="hidden" accept="image/*" capture="environment" onChange={(e) => handleFileUpload(e, 'after')} />
+                            </label>
+                          </div>
                         </div>
                       )}
                     </div>

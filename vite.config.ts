@@ -27,6 +27,7 @@ export default defineConfig(({ mode }) => ({
       },
       includeAssets: ['favicon.ico', 'logo.svg'],
       manifest: {
+        id: 'geng-kubur-planner',
         name: 'GengKubur Ukay Perdana',
         short_name: 'GengKubur',
         description: 'Perkhidmatan Penyelenggaraan Kubur Profesional & Amanah',
@@ -36,6 +37,7 @@ export default defineConfig(({ mode }) => ({
         scope: '/',
         start_url: '/',
         orientation: 'portrait',
+        categories: ['business', 'utilities', 'productivity'],
         icons: [
           {
             src: 'logo.svg',

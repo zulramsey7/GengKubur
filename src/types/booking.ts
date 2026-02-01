@@ -18,6 +18,7 @@ export interface BookingDetails {
   customerName: string;
   phoneNumber: string;
   location: string;
+  graveLotNumber: string;
   selectedPackage: Package | null;
   notes?: string;
   additionalItems: AdditionalItem[];

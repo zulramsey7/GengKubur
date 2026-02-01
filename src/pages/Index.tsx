@@ -84,7 +84,7 @@ const Index = () => {
         .insert({
           customer_name: details.customerName,
           phone_number: details.phoneNumber,
-          location: details.location,
+          location: `${details.location} (Lot: ${details.graveLotNumber})`,
           notes: details.notes,
           package_id: details.selectedPackage.id,
           package_name: details.selectedPackage.name,

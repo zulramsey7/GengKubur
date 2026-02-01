@@ -1,7 +1,8 @@
 import { useState, useEffect } from "react";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
-import { X } from "lucide-react";
+import { X, ChevronLeft, ChevronRight } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { Button } from "@/components/ui/button";
 
 interface GalleryImage {
   id: string | number;
@@ -12,8 +13,9 @@ interface GalleryImage {
 
 const GallerySection = () => {
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
-  
   const [galleryImages, setGalleryImages] = useState<GalleryImage[]>([]);
+  const [currentPage, setCurrentPage] = useState(0);
+  const itemsPerPage = 3;
 
   useEffect(() => {
     const fetchImages = async () => {
@@ -55,6 +57,21 @@ const GallerySection = () => {
     };
   }, []);
 
+  const totalPages = Math.ceil(galleryImages.length / itemsPerPage);
+  
+  const handleNext = () => {
+    setCurrentPage((prev) => (prev + 1) % totalPages);
+  };
+
+  const handlePrev = () => {
+    setCurrentPage((prev) => (prev - 1 + totalPages) % totalPages);
+  };
+
+  const currentImages = galleryImages.slice(
+    currentPage * itemsPerPage,
+    (currentPage + 1) * itemsPerPage
+  );
+
   return (
     <section id="gallery" className="py-16 md:py-24">
       <div className="container px-4 md:px-6">
@@ -70,30 +87,56 @@ const GallerySection = () => {
           </p>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-          {galleryImages.map((image) => (
-            <div 
-              key={image.id}
-              className="group relative aspect-square overflow-hidden rounded-xl bg-gray-100 cursor-pointer shadow-sm hover:shadow-md transition-all"
-              onClick={() => setSelectedImage(image.src)}
-            >
-              <div className="absolute inset-0 bg-gray-200 animate-pulse" /> {/* Placeholder loading state */}
-              <img
-                src={image.src}
-                alt={image.alt}
-                className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-110 relative z-10"
-                loading="lazy"
-                onError={(e) => {
-                  (e.target as HTMLImageElement).src = `https://placehold.co/600x600?text=${encodeURIComponent(image.alt)}`;
-                }}
-              />
-              <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors z-20 flex items-center justify-center opacity-0 group-hover:opacity-100">
-                <span className="text-white font-medium bg-black/50 px-3 py-1 rounded-full backdrop-blur-sm text-sm transform translate-y-4 group-hover:translate-y-0 transition-transform">
-                  Lihat Gambar
-                </span>
+        <div className="relative">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 mb-8">
+            {currentImages.map((image) => (
+              <div 
+                key={image.id}
+                className="group relative aspect-square overflow-hidden rounded-xl bg-gray-100 cursor-pointer shadow-sm hover:shadow-md transition-all"
+                onClick={() => setSelectedImage(image.src)}
+              >
+                <div className="absolute inset-0 bg-gray-200 animate-pulse" /> {/* Placeholder loading state */}
+                <img
+                  src={image.src}
+                  alt={image.alt}
+                  className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-110 relative z-10"
+                  loading="lazy"
+                  onError={(e) => {
+                    (e.target as HTMLImageElement).src = `https://placehold.co/600x600?text=${encodeURIComponent(image.alt)}`;
+                  }}
+                />
+                <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors z-20 flex items-center justify-center opacity-0 group-hover:opacity-100">
+                  <span className="text-white font-medium bg-black/50 px-3 py-1 rounded-full backdrop-blur-sm text-sm transform translate-y-4 group-hover:translate-y-0 transition-transform">
+                    Lihat Gambar
+                  </span>
+                </div>
               </div>
+            ))}
+          </div>
+
+          {galleryImages.length > itemsPerPage && (
+            <div className="flex justify-center items-center gap-4 mt-8">
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={handlePrev}
+                className="h-10 w-10 rounded-full border-primary/20 hover:bg-primary/10 hover:text-primary"
+              >
+                <ChevronLeft className="h-5 w-5" />
+              </Button>
+              <span className="text-sm font-medium text-muted-foreground">
+                Halaman {currentPage + 1} dari {totalPages}
+              </span>
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={handleNext}
+                className="h-10 w-10 rounded-full border-primary/20 hover:bg-primary/10 hover:text-primary"
+              >
+                <ChevronRight className="h-5 w-5" />
+              </Button>
             </div>
-          ))}
+          )}
         </div>
       </div>
 

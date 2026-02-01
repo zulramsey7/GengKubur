@@ -9,6 +9,7 @@ import AdminDashboard from "./pages/AdminDashboard";
 import Login from "./pages/Login";
 import Tracking from "./pages/Tracking";
 import { NotificationListener } from "@/components/NotificationListener";
+import { PWAInstallPrompt } from "@/components/PWAInstallPrompt";
 import { useRegisterSW } from "virtual:pwa-register/react";
 import { useEffect } from "react";
 
@@ -61,6 +62,7 @@ const App = () => {
         <Toaster />
         <Sonner />
         <NotificationListener />
+        <PWAInstallPrompt />
         <BrowserRouter>
           <Routes>
             <Route path="/" element={<Index />} />

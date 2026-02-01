@@ -16,6 +16,8 @@ interface Booking {
   admin_remarks: string | null;
   order_id: string;
   payment_balance: number | null;
+  before_photo_url: string | null;
+  after_photo_url: string | null;
 }
 
 interface ReceiptProps {
@@ -127,14 +129,14 @@ const Receipt = forwardRef<HTMLDivElement, ReceiptProps>(({ booking }, ref) => {
                 RM {totalAmount.toFixed(2)}
               </td>
             </tr>
-            {booking.payment_balance && booking.payment_balance > 0 && (
+            {booking.payment_balance !== null && booking.payment_balance > 0 ? (
               <tr>
                 <td className="pt-2 text-right font-bold text-gray-500">Baki Perlu Dibayar</td>
                 <td className="pt-2 text-right font-bold text-xl text-red-500">
                   RM {booking.payment_balance.toFixed(2)}
                 </td>
               </tr>
-            )}
+            ) : null}
           </tfoot>
         </table>
         
@@ -142,6 +144,39 @@ const Receipt = forwardRef<HTMLDivElement, ReceiptProps>(({ booking }, ref) => {
           <div className="mt-8 border-t pt-4">
              <h4 className="font-bold text-gray-900 mb-2">Catatan Admin:</h4>
              <p className="text-gray-600">{booking.admin_remarks}</p>
+          </div>
+        )}
+
+        {/* Bukti Kerja (Work Proof) */}
+        {(booking.before_photo_url || booking.after_photo_url) && (
+          <div className="mt-8 border-t pt-4 break-inside-avoid">
+             <h4 className="font-bold text-gray-900 mb-4 uppercase tracking-wider text-sm">Bukti Kerja</h4>
+             <div className="grid grid-cols-2 gap-4">
+               {booking.before_photo_url && (
+                 <div>
+                   <p className="text-xs font-semibold text-gray-500 mb-2">SEBELUM</p>
+                   <div className="border rounded-lg overflow-hidden h-48 bg-gray-50">
+                     <img 
+                       src={booking.before_photo_url} 
+                       alt="Sebelum" 
+                       className="w-full h-full object-contain"
+                     />
+                   </div>
+                 </div>
+               )}
+               {booking.after_photo_url && (
+                 <div>
+                   <p className="text-xs font-semibold text-gray-500 mb-2">SELEPAS</p>
+                   <div className="border rounded-lg overflow-hidden h-48 bg-gray-50">
+                     <img 
+                       src={booking.after_photo_url} 
+                       alt="Selepas" 
+                       className="w-full h-full object-contain"
+                     />
+                   </div>
+                 </div>
+               )}
+             </div>
           </div>
         )}
       </div>

@@ -178,6 +178,24 @@ const BookingForm = ({ selectedPackage, onSubmit }: BookingFormProps) => {
           )}
         </div>
 
+        {/* Grave Lot Number */}
+        <div className="mb-6">
+          <Label htmlFor="graveLotNumber" className="mb-2 flex items-center gap-2 text-sm font-medium">
+            <MapPin className="h-4 w-4 text-primary" />
+            No Lot Kubur
+          </Label>
+          <Input
+            id="graveLotNumber"
+            placeholder="Contoh: Lot 123, Blok A"
+            value={formData.graveLotNumber}
+            onChange={(e) => handleChange("graveLotNumber", e.target.value)}
+            className={errors.graveLotNumber ? "border-destructive" : ""}
+          />
+          {errors.graveLotNumber && (
+            <p className="mt-1 text-sm text-destructive">{errors.graveLotNumber}</p>
+          )}
+        </div>
+
         {/* Add-ons Section */}
         {selectedPackage?.id !== 'custom' && (
           <div className="mb-6">
