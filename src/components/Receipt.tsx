@@ -111,16 +111,21 @@ const Receipt = forwardRef<HTMLDivElement, ReceiptProps>(({ booking }, ref) => {
                 RM {booking.package_price.toFixed(2)}
               </td>
             </tr>
-            {booking.additional_items?.map((item, index) => (
-              <tr key={index}>
-                <td className="py-6">
-                  <p className="font-bold text-gray-900 text-lg mb-1">{item.description}</p>
-                </td>
-                <td className="py-6 text-right font-medium text-gray-900">
-                  RM {item.price.toFixed(2)}
-                </td>
-              </tr>
-            ))}
+            {booking.additional_items?.map((item, index) => {
+              const isDiscount = item.price < 0 || item.description.toLowerCase().includes('diskaun');
+              return (
+                <tr key={index}>
+                  <td className="py-6">
+                    <p className={`font-bold text-lg mb-1 ${isDiscount ? 'text-red-500' : 'text-gray-900'}`}>
+                      {item.description}
+                    </p>
+                  </td>
+                  <td className={`py-6 text-right font-medium ${isDiscount ? 'text-red-500' : 'text-gray-900'}`}>
+                    {item.price < 0 ? `- RM ${Math.abs(item.price).toFixed(2)}` : `RM ${item.price.toFixed(2)}`}
+                  </td>
+                </tr>
+              );
+            })}
           </tbody>
           <tfoot>
             <tr>
@@ -159,6 +164,7 @@ const Receipt = forwardRef<HTMLDivElement, ReceiptProps>(({ booking }, ref) => {
                      <img 
                        src={booking.before_photo_url} 
                        alt="Sebelum" 
+                       crossOrigin="anonymous"
                        className="w-full h-full object-contain"
                      />
                    </div>
@@ -171,6 +177,7 @@ const Receipt = forwardRef<HTMLDivElement, ReceiptProps>(({ booking }, ref) => {
                      <img 
                        src={booking.after_photo_url} 
                        alt="Selepas" 
+                       crossOrigin="anonymous"
                        className="w-full h-full object-contain"
                      />
                    </div>

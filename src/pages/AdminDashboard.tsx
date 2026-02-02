@@ -176,14 +176,21 @@ const AdminDashboard = () => {
   const handleEditClick = () => {
     setIsEditing(true);
     setEditedBooking(selectedBooking);
-    setEditDiscount(0);
+    
+    // Find existing discount in additional items
+    const discountItem = selectedBooking?.additional_items?.find(item => item.description === "Diskaun");
+    const currentDiscount = discountItem ? Math.abs(discountItem.price) : 0;
+    setEditDiscount(currentDiscount);
+
     if (selectedBooking) {
-      // Calculate current deposit based on price and balance
-      // If balance is null, assume full payment pending (deposit 0) or full paid? 
-      // Usually payment_balance is tracked. If null, maybe it's 0? 
-      // Let's assume balance exists.
-      const currentBalance = selectedBooking.payment_balance ?? selectedBooking.package_price;
-      const calculatedDeposit = selectedBooking.package_price - currentBalance;
+      // Calculate total cost including additional items
+      const additionalItemsSum = selectedBooking.additional_items?.reduce((sum, item) => sum + item.price, 0) || 0;
+      const totalCost = selectedBooking.package_price + additionalItemsSum;
+      
+      // Calculate current deposit based on total cost and balance
+      const currentBalance = selectedBooking.payment_balance ?? totalCost;
+      const calculatedDeposit = totalCost - currentBalance;
+      
       setEditDeposit(calculatedDeposit > 0 ? calculatedDeposit : 0);
     }
   };
@@ -199,16 +206,32 @@ const AdminDashboard = () => {
     if (!editedBooking || !selectedBooking) return;
 
     try {
-      // Calculate final values
-      // If user entered a discount, subtract from the current package price in the edit form
+      // Handle Discount as Additional Item
+      let currentItems = [...(selectedBooking.additional_items || [])];
+      
+      // Remove existing discount item to avoid duplicates
+      currentItems = currentItems.filter(item => item.description !== "Diskaun");
+      
+      // Add new discount item if > 0
+      if (editDiscount > 0) {
+        currentItems.push({
+          description: "Diskaun",
+          price: -editDiscount
+        });
+      }
+
+      // Calculate totals with new items
+      const newAdditionalItemsTotal = currentItems.reduce((sum, item) => sum + item.price, 0);
       const basePrice = editedBooking.package_price || 0;
-      const finalPrice = basePrice - editDiscount;
-      const finalBalance = finalPrice + additionalItemsTotal - editDeposit;
+      const totalCost = basePrice + newAdditionalItemsTotal;
+      const finalBalance = totalCost - editDeposit;
 
       // Construct a note if discount was applied
       let updatedNotes = editedBooking.notes || "";
       if (editDiscount > 0) {
-        const discountNote = `\n[Diskaun] RM ${editDiscount} diberikan pada ${new Date().toLocaleDateString("ms-MY")}.`;
+        // Check if note already exists to avoid spamming? 
+        // For now, just append as log
+        const discountNote = `\n[Diskaun] RM ${editDiscount} dikemaskini pada ${new Date().toLocaleDateString("ms-MY")}.`;
         updatedNotes += discountNote;
       }
 
@@ -220,8 +243,9 @@ const AdminDashboard = () => {
           location: editedBooking.location,
           notes: updatedNotes,
           package_name: editedBooking.package_name,
-          package_price: finalPrice,
-          payment_balance: finalBalance
+          package_price: basePrice,
+          payment_balance: finalBalance,
+          additional_items: currentItems as any
         })
         .eq('id', selectedBooking.id);
 
@@ -233,7 +257,15 @@ const AdminDashboard = () => {
       });
 
       // Update local state
-      const updatedBooking = { ...selectedBooking, ...editedBooking } as Booking;
+      const updatedBooking = { 
+        ...selectedBooking, 
+        ...editedBooking, 
+        package_price: basePrice,
+        additional_items: currentItems,
+        payment_balance: finalBalance,
+        notes: updatedNotes
+      } as Booking;
+      
       setSelectedBooking(updatedBooking);
       setBookings(bookings.map(b => b.id === selectedBooking.id ? updatedBooking : b));
       setIsEditing(false);
@@ -598,7 +630,13 @@ Sebarang pertanyaan hubungi: 60173304906`;
       // Helper to convert image URL to Base64
       const getBase64FromUrl = async (url: string): Promise<string> => {
         try {
-            const response = await fetch(url, { mode: 'cors' });
+            const response = await fetch(url, { 
+              mode: 'cors',
+              cache: 'no-store',
+              headers: {
+                'Access-Control-Allow-Origin': '*'
+              }
+            });
             const blob = await response.blob();
             return new Promise((resolve, reject) => {
             const reader = new FileReader();
@@ -1364,9 +1402,9 @@ Sebarang pertanyaan hubungi: 60173304906`;
           setEditedBooking(null);
         }
       }}>
-        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto w-[95vw] rounded-xl">
+        <DialogContent className="w-full h-full md:max-w-3xl md:h-auto md:max-h-[90vh] md:w-[95vw] md:rounded-xl rounded-none p-4 sm:p-6 overflow-y-auto">
           <DialogHeader>
-            <div className="flex items-center justify-between pr-8">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pr-8">
               <div>
                 <DialogTitle>Butiran Tempahan</DialogTitle>
                 <DialogDescription>
@@ -1374,18 +1412,18 @@ Sebarang pertanyaan hubungi: 60173304906`;
                 </DialogDescription>
               </div>
               {selectedBooking && (
-                <div className="flex gap-2">
+                <div className="flex gap-2 w-full sm:w-auto">
                   {isEditing ? (
                     <>
-                      <Button size="sm" variant="outline" onClick={handleCancelEdit}>
+                      <Button size="sm" variant="outline" onClick={handleCancelEdit} className="flex-1 sm:flex-none">
                         <X className="h-4 w-4 mr-1" /> Batal
                       </Button>
-                      <Button size="sm" onClick={handleSaveEdit}>
+                      <Button size="sm" onClick={handleSaveEdit} className="flex-1 sm:flex-none">
                         <Save className="h-4 w-4 mr-1" /> Simpan
                       </Button>
                     </>
                   ) : (
-                    <Button size="sm" variant="outline" onClick={handleEditClick}>
+                    <Button size="sm" variant="outline" onClick={handleEditClick} className="w-full sm:w-auto">
                       <Edit className="h-4 w-4 mr-1" /> Edit
                     </Button>
                   )}
@@ -1404,41 +1442,41 @@ Sebarang pertanyaan hubungi: 60173304906`;
                       <User className="h-4 w-4" /> Maklumat Pelanggan
                     </CardTitle>
                   </CardHeader>
-                  <CardContent className="pt-4 space-y-3 text-sm">
-                    <div className="grid grid-cols-[80px_1fr] items-center">
+                  <CardContent className="pt-4 space-y-4 text-sm">
+                    <div className="flex flex-col sm:grid sm:grid-cols-[100px_1fr] gap-1 sm:gap-0 sm:items-center">
                       <span className="text-muted-foreground">Nama:</span>
                       {isEditing ? (
                         <Input 
                           value={editedBooking?.customer_name || ''} 
                           onChange={(e) => setEditedBooking(prev => ({ ...prev!, customer_name: e.target.value }))}
-                          className="h-8"
+                          className="h-9 text-base md:text-sm"
                         />
                       ) : (
-                        <span className="font-medium">{selectedBooking.customer_name}</span>
+                        <span className="font-medium break-words">{selectedBooking.customer_name}</span>
                       )}
                     </div>
-                    <div className="grid grid-cols-[80px_1fr] items-center">
+                    <div className="flex flex-col sm:grid sm:grid-cols-[100px_1fr] gap-1 sm:gap-0 sm:items-center">
                       <span className="text-muted-foreground">No. Tel:</span>
                       {isEditing ? (
                         <Input 
                           value={editedBooking?.phone_number || ''} 
                           onChange={(e) => setEditedBooking(prev => ({ ...prev!, phone_number: e.target.value }))}
-                          className="h-8"
+                          className="h-9 text-base md:text-sm"
                         />
                       ) : (
-                        <span className="font-medium">{selectedBooking.phone_number}</span>
+                        <span className="font-medium break-words">{selectedBooking.phone_number}</span>
                       )}
                     </div>
-                    <div className="grid grid-cols-[80px_1fr] items-center">
+                    <div className="flex flex-col sm:grid sm:grid-cols-[100px_1fr] gap-1 sm:gap-0 sm:items-center">
                       <span className="text-muted-foreground">Lokasi:</span>
                       {isEditing ? (
                         <Input 
                           value={editedBooking?.location || ''} 
                           onChange={(e) => setEditedBooking(prev => ({ ...prev!, location: e.target.value }))}
-                          className="h-8"
+                          className="h-9 text-base md:text-sm"
                         />
                       ) : (
-                        <span className="font-medium">{selectedBooking.location}</span>
+                        <span className="font-medium break-words">{selectedBooking.location}</span>
                       )}
                     </div>
                   </CardContent>
@@ -1451,24 +1489,24 @@ Sebarang pertanyaan hubungi: 60173304906`;
                       <Package className="h-4 w-4" /> Maklumat Pakej
                     </CardTitle>
                   </CardHeader>
-                  <CardContent className="pt-4 space-y-3 text-sm">
-                    <div className="grid grid-cols-[80px_1fr] items-center">
+                  <CardContent className="pt-4 space-y-4 text-sm">
+                    <div className="flex flex-col sm:grid sm:grid-cols-[100px_1fr] gap-1 sm:gap-0 sm:items-center">
                       <span className="text-muted-foreground">Pakej:</span>
                       {isEditing ? (
                         <Input 
                           value={editedBooking?.package_name || ''} 
                           onChange={(e) => setEditedBooking(prev => ({ ...prev!, package_name: e.target.value }))}
-                          className="h-8"
+                          className="h-9 text-base md:text-sm"
                         />
                       ) : (
-                        <span className="font-medium">{selectedBooking.package_name}</span>
+                        <span className="font-medium break-words">{selectedBooking.package_name}</span>
                       )}
                     </div>
-                    <div className="grid grid-cols-[80px_1fr]">
+                    <div className="flex flex-col sm:grid sm:grid-cols-[100px_1fr] gap-1 sm:gap-0 sm:items-center">
                       <span className="text-muted-foreground">Tarikh:</span>
                       <span className="font-medium">{new Date(selectedBooking.created_at).toLocaleDateString("ms-MY")}</span>
                     </div>
-                    <div className="grid grid-cols-[80px_1fr] items-center">
+                    <div className="flex flex-col sm:grid sm:grid-cols-[100px_1fr] gap-1 sm:gap-0 sm:items-center">
                       <span className="text-muted-foreground">Status:</span>
                       <Badge className={getStatusColor(selectedBooking.status) + " w-fit"}>{selectedBooking.status}</Badge>
                     </div>
@@ -1494,7 +1532,7 @@ Sebarang pertanyaan hubungi: 60173304906`;
                             type="number"
                             value={editedBooking?.package_price || ''} 
                             onChange={(e) => setEditedBooking(prev => ({ ...prev!, package_price: parseFloat(e.target.value) }))}
-                            className="h-9"
+                            className="h-9 text-base md:text-sm"
                           />
                         </div>
                       ) : (
@@ -1516,7 +1554,7 @@ Sebarang pertanyaan hubungi: 60173304906`;
                             type="number"
                             value={editDiscount} 
                             onChange={(e) => setEditDiscount(parseFloat(e.target.value) || 0)}
-                            className="h-8 border-red-200 text-red-600"
+                            className="h-9 border-red-200 text-red-600 text-base md:text-sm"
                           />
                         </div>
                       </div>
@@ -1531,7 +1569,7 @@ Sebarang pertanyaan hubungi: 60173304906`;
                             type="number"
                             value={editDeposit} 
                             onChange={(e) => setEditDeposit(parseFloat(e.target.value) || 0)}
-                            className="h-9 border-green-200 text-green-600"
+                            className="h-9 border-green-200 text-green-600 text-base md:text-sm"
                           />
                         </div>
                       ) : (
@@ -1755,23 +1793,25 @@ Sebarang pertanyaan hubungi: 60173304906`;
                       <p className="text-sm text-muted-foreground mb-4 text-center italic">Tiada item tambahan</p>
                     )}
                     
-                    <div className="flex gap-2">
+                    <div className="flex flex-col sm:flex-row gap-2">
                       <input
                         placeholder="Keterangan item"
-                        className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+                        className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-base md:text-sm shadow-sm transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
                         value={newItemDescription}
                         onChange={(e) => setNewItemDescription(e.target.value)}
                       />
-                      <input
-                        placeholder="Harga (RM)"
-                        type="number"
-                        className="flex h-9 w-[100px] rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
-                        value={newItemPrice}
-                        onChange={(e) => setNewItemPrice(e.target.value)}
-                      />
-                      <Button onClick={handleAddAdditionalItem} size="sm">
-                        Tambah
-                      </Button>
+                      <div className="flex gap-2">
+                        <input
+                          placeholder="Harga (RM)"
+                          type="number"
+                          className="flex h-9 w-full sm:w-[100px] rounded-md border border-input bg-background px-3 py-1 text-base md:text-sm shadow-sm transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+                          value={newItemPrice}
+                          onChange={(e) => setNewItemPrice(e.target.value)}
+                        />
+                        <Button onClick={handleAddAdditionalItem} size="sm" className="w-20 sm:w-auto">
+                          Tambah
+                        </Button>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -1794,7 +1834,7 @@ Sebarang pertanyaan hubungi: 60173304906`;
                         value={paymentBalance}
                         onChange={(e) => setPaymentBalance(e.target.value)}
                         placeholder="0.00"
-                        className="pl-9"
+                        className="pl-9 text-base md:text-sm"
                       />
                     </div>
                     <Button onClick={handleSavePaymentBalance} size="sm" variant="secondary">
@@ -1811,7 +1851,7 @@ Sebarang pertanyaan hubungi: 60173304906`;
                     value={adminRemarks}
                     onChange={(e) => setAdminRemarks(e.target.value)}
                     placeholder="Masukkan catatan tambahan untuk resit..."
-                    className="min-h-[80px]"
+                    className="min-h-[80px] text-base md:text-sm"
                   />
                   <Button onClick={handleSaveAdminRemarks} size="sm" variant="secondary" className="w-full">
                     Simpan Catatan
@@ -1828,7 +1868,7 @@ Sebarang pertanyaan hubungi: 60173304906`;
                   <Textarea 
                     value={receiptText}
                     onChange={(e) => setReceiptText(e.target.value)}
-                    className="font-mono text-sm min-h-[150px]"
+                    className="font-mono text-base md:text-sm min-h-[150px]"
                     placeholder="Teks resit akan dipaparkan di sini..."
                   />
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
