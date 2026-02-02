@@ -35,6 +35,17 @@ const App = () => {
   });
 
   useEffect(() => {
+    // Force unregister Service Worker in development to prevent caching issues
+    if (import.meta.env.DEV && 'serviceWorker' in navigator) {
+      navigator.serviceWorker.getRegistrations().then((registrations) => {
+        for (const registration of registrations) {
+          registration.unregister().then(() => {
+            console.log('Service Worker unregistered in dev mode');
+          });
+        }
+      });
+    }
+
     if (needRefresh) {
       updateServiceWorker(true);
     }

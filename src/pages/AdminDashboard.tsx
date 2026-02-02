@@ -1494,7 +1494,7 @@ Sebarang pertanyaan hubungi: 60173304906`;
                             type="number"
                             value={editedBooking?.package_price || ''} 
                             onChange={(e) => setEditedBooking(prev => ({ ...prev!, package_price: parseFloat(e.target.value) }))}
-                            className="h-8"
+                            className="h-9"
                           />
                         </div>
                       ) : (
@@ -1531,7 +1531,7 @@ Sebarang pertanyaan hubungi: 60173304906`;
                             type="number"
                             value={editDeposit} 
                             onChange={(e) => setEditDeposit(parseFloat(e.target.value) || 0)}
-                            className="h-8 border-green-200 text-green-600"
+                            className="h-9 border-green-200 text-green-600"
                           />
                         </div>
                       ) : (
@@ -1735,17 +1735,17 @@ Sebarang pertanyaan hubungi: 60173304906`;
                     {selectedBooking.additional_items && selectedBooking.additional_items.length > 0 ? (
                       <div className="space-y-2 mb-4">
                         {selectedBooking.additional_items.map((item, index) => (
-                          <div key={index} className="flex items-center justify-between bg-white p-2 rounded border">
-                            <span className="text-sm">{item.description}</span>
-                            <div className="flex items-center gap-3">
-                              <span className="font-medium text-sm">RM {item.price.toFixed(2)}</span>
+                          <div key={index} className="flex flex-col sm:flex-row sm:items-center justify-between bg-white p-3 rounded border gap-2">
+                            <span className="text-sm break-words flex-1 mr-2">{item.description}</span>
+                            <div className="flex items-center justify-between w-full sm:w-auto gap-3">
+                              <span className="font-medium text-sm whitespace-nowrap">RM {item.price.toFixed(2)}</span>
                               <Button 
                                 variant="ghost" 
                                 size="sm" 
-                                className="h-6 w-6 p-0 text-red-500 hover:text-red-700"
+                                className="h-8 w-8 p-0 text-red-500 hover:text-red-700 hover:bg-red-50"
                                 onClick={() => handleDeleteAdditionalItem(index)}
                               >
-                                <Trash2 className="h-3 w-3" />
+                                <Trash2 className="h-4 w-4" />
                               </Button>
                             </div>
                           </div>

@@ -157,6 +157,7 @@ const BackgroundMusic = () => {
       modestbranding: 1,
       playsinline: 1,
       rel: 0,
+      origin: window.location.origin,
     },
   };
 
@@ -169,6 +170,7 @@ const BackgroundMusic = () => {
           opts={opts} 
           onReady={onReady} 
           onStateChange={onStateChange} 
+          onError={(e) => console.warn("YouTube Player Error:", e)}
           key={`${videoId}-${startTime}`} // Re-render on videoId or startTime change
         />
       </div>

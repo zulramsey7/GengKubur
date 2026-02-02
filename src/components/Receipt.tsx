@@ -159,7 +159,6 @@ const Receipt = forwardRef<HTMLDivElement, ReceiptProps>(({ booking }, ref) => {
                      <img 
                        src={booking.before_photo_url} 
                        alt="Sebelum" 
-                       crossOrigin="anonymous"
                        className="w-full h-full object-contain"
                      />
                    </div>
@@ -172,7 +171,6 @@ const Receipt = forwardRef<HTMLDivElement, ReceiptProps>(({ booking }, ref) => {
                      <img 
                        src={booking.after_photo_url} 
                        alt="Selepas" 
-                       crossOrigin="anonymous"
                        className="w-full h-full object-contain"
                      />
                    </div>
