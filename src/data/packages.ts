@@ -4,7 +4,7 @@ export const packages: Package[] = [
   {
     id: "A",
     name: "Pakej A",
-    price: 400,
+    price: 300,
     description: "Rumput Bahagian Atas Sahaja",
     features: [
       "Penanaman rumput bahagian atas",
@@ -16,7 +16,7 @@ export const packages: Package[] = [
   {
     id: "B",
     name: "Pakej B",
-    price: 450,
+    price: 350,
     description: "Rumput Atas dan Bawah",
     features: [
       "Penanaman rumput atas dan bawah",
@@ -29,7 +29,7 @@ export const packages: Package[] = [
   {
     id: "C",
     name: "Pakej C",
-    price: 550,
+    price: 450,
     description: "Rumput Atas, Bawah dan Cat",
     features: [
       "Penanaman rumput atas & bawah",
@@ -41,7 +41,7 @@ export const packages: Package[] = [
   {
     id: "D",
     name: "Pakej D",
-    price: 300,
+    price: 250,
     description: "Upah Sahaja (Tidak Termasuk Barangan)",
     features: [
       "Khidmat tenaga kerja",
@@ -52,7 +52,7 @@ export const packages: Package[] = [
   {
     id: "E",
     name: "Pakej E",
-    price: 250,
+    price: 200,
     description: "Cat dan Kepok",
     features: [
       "Pengecatan kubur",
