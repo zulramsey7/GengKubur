@@ -4,7 +4,7 @@ export const packages: Package[] = [
   {
     id: "A",
     name: "Pakej A",
-    price: 300,
+    price: 400,
     description: "Rumput Bahagian Atas Sahaja",
     features: [
       "Penanaman rumput bahagian atas",
@@ -16,7 +16,7 @@ export const packages: Package[] = [
   {
     id: "B",
     name: "Pakej B",
-    price: 350,
+    price: 450,
     description: "Rumput Atas dan Bawah",
     features: [
       "Penanaman rumput atas dan bawah",
@@ -29,7 +29,7 @@ export const packages: Package[] = [
   {
     id: "C",
     name: "Pakej C",
-    price: 450,
+    price: 550,
     description: "Rumput Atas, Bawah dan Cat",
     features: [
       "Penanaman rumput atas & bawah",
