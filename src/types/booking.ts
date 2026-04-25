@@ -1,0 +1,32 @@
+export interface Package {
+  id: string;
+  name: string;
+  price: number;
+  description: string;
+  features: string[];
+  popular?: boolean;
+}
+
+export interface AdditionalItem {
+  id: string;
+  name: string;
+  price: number;
+  description: string;
+}
+
+export interface BookingDetails {
+  customerName: string;
+  phoneNumber: string;
+  location: string;
+  graveLotNumber: string;
+  selectedPackage: Package | null;
+  notes?: string;
+  additionalItems: AdditionalItem[];
+  beforePhotoUrl?: string;
+}
+
+export interface OrderSummary extends BookingDetails {
+  orderId: string;
+  orderDate: string;
+  totalAmount: number;
+}
